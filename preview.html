@@ -75,6 +75,25 @@
         </section>
       </section>
 
+      <section class="auth-layout app-hidden" id="pending-screen" aria-labelledby="pending-title">
+        <div class="auth-copy">
+          <div class="brand-lockup">
+            <img src="./assets/thf-logo.png" alt="THF" />
+            <span></span>
+            <img src="./assets/ehf-euro-logo.png" alt="EHF EURO 2026" />
+          </div>
+          <p class="pipeline-kicker" data-i18n="pendingKicker">EURO 2026 WORKFLOW</p>
+          <h1 id="pending-title">
+            <span data-i18n="pendingTitle">Access pending approval.</span>
+          </h1>
+          <p class="hero-copy" data-i18n="pendingCopy">
+            Your account has been created. An administrator must approve your access before you can
+            view the workflow.
+          </p>
+          <button class="ghost-button" type="button" id="pending-logout-button" data-i18n="logout">Logout</button>
+        </div>
+      </section>
+
       <section class="pipeline-layout kanban-layout app-hidden" id="app-screen" aria-labelledby="pipeline-title">
         <header class="pipeline-hero kanban-hero">
           <div class="app-topbar">
@@ -212,6 +231,14 @@
                 <button class="primary-button" type="submit" data-i18n="addButton">Add</button>
               </form>
               <div class="user-list" id="user-list"></div>
+            </section>
+
+            <section class="editor-card compact-card app-hidden" id="admin-panel">
+              <div class="panel-heading">
+                <p class="toolbar-label" data-i18n="adminLabel">Admin</p>
+                <h2 data-i18n="approvalTitle">User Approvals</h2>
+              </div>
+              <div class="approval-list" id="approval-list"></div>
             </section>
           </aside>
         </section>

@@ -90,6 +90,13 @@ const i18n = {
     loadingRegister: "Creating account...",
     confirmEmail: "Account created. If email confirmation is enabled in Supabase, confirm your email and then log in.",
     dbError: "Database could not be read",
+    pendingKicker: "EURO 2026 WORKFLOW",
+    pendingTitle: "Access pending approval.",
+    pendingCopy: "Your account has been created. An administrator must approve your access before you can view the workflow.",
+    adminLabel: "Admin",
+    approvalTitle: "User Approvals",
+    approveButton: "Approve",
+    noPendingUsers: "No users pending approval.",
   },
   tr: {
     authKicker: "THF Medya Ekibi • Güvenli Operasyon Merkezi",
@@ -163,6 +170,13 @@ const i18n = {
     loadingRegister: "Üyelik oluşturuluyor...",
     confirmEmail: "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.",
     dbError: "Database okunamadı",
+    pendingKicker: "EURO 2026 WORKFLOW",
+    pendingTitle: "Erişim admin onayı bekliyor.",
+    pendingCopy: "Hesabın oluşturuldu. Workflow ekranına erişebilmen için bir adminin hesabını onaylaması gerekiyor.",
+    adminLabel: "Admin",
+    approvalTitle: "Kullanıcı Onayları",
+    approveButton: "Onayla",
+    noPendingUsers: "Onay bekleyen kullanıcı yok.",
   },
 };
 
@@ -211,6 +225,7 @@ let recorder = null;
 let recordedChunks = [];
 
 const authScreen = document.getElementById("auth-screen");
+const pendingScreen = document.getElementById("pending-screen");
 const appScreen = document.getElementById("app-screen");
 const authMessage = document.getElementById("auth-message");
 const board = document.getElementById("kanban-board");
@@ -248,6 +263,7 @@ function wireEvents() {
   document.getElementById("login-form").addEventListener("submit", login);
   document.getElementById("register-form").addEventListener("submit", register);
   document.getElementById("logout-button").addEventListener("click", () => supabase.auth.signOut());
+  document.getElementById("pending-logout-button").addEventListener("click", () => supabase.auth.signOut());
   document.getElementById("show-all-button").addEventListener("click", () => {
     activeColumn = "all";
     renderBoard();
@@ -274,6 +290,7 @@ function wireEvents() {
   });
   taskForm.addEventListener("submit", saveTask);
   userForm.addEventListener("submit", addProfile);
+  document.getElementById("approval-list").addEventListener("click", approveUser);
   recordButton.addEventListener("click", toggleRecording);
   board.addEventListener("click", handleBoardClick);
   board.addEventListener("dragstart", handleDragStart);
@@ -321,7 +338,10 @@ async function register(event) {
   if (data.user) {
     await supabase
       .from("profiles")
-      .upsert({ auth_user_id: data.user.id, full_name: fullName, role }, { onConflict: "auth_user_id" });
+      .upsert(
+        { auth_user_id: data.user.id, full_name: fullName, role, approval_status: "pending", is_admin: false },
+        { onConflict: "auth_user_id" },
+      );
   }
 
   setAuthMessage(data.session ? "" : t("confirmEmail"));
@@ -329,10 +349,18 @@ async function register(event) {
 
 async function renderShell() {
   authScreen.classList.toggle("app-hidden", Boolean(session));
+  pendingScreen.classList.add("app-hidden");
   appScreen.classList.toggle("app-hidden", !session);
   if (!session) return;
 
   await ensureProfile();
+  if (currentProfile?.approval_status !== "approved") {
+    authScreen.classList.add("app-hidden");
+    appScreen.classList.add("app-hidden");
+    pendingScreen.classList.remove("app-hidden");
+    applyI18n();
+    return;
+  }
   await seedImportedTasks();
   await loadData();
   document.getElementById("current-user-label").textContent =
@@ -355,6 +383,8 @@ async function ensureProfile() {
     auth_user_id: session.user.id,
     full_name: meta.full_name || session.user.email,
     role: meta.role || t("teamFallback"),
+    approval_status: "pending",
+    is_admin: false,
   };
   const { data: inserted } = await supabase
     .from("profiles")
@@ -413,6 +443,7 @@ function renderAll() {
   renderBoard();
   renderCalendar();
   renderEditor();
+  renderAdminPanel();
 }
 
 function renderSelectors() {
@@ -428,6 +459,31 @@ function renderUsers() {
   document.getElementById("user-list").innerHTML = profiles
     .map((profile) => `<span class="user-pill">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || t("teamFallback"))}</span>`)
     .join("");
+}
+
+function renderAdminPanel() {
+  const panel = document.getElementById("admin-panel");
+  const list = document.getElementById("approval-list");
+  const isAdmin = Boolean(currentProfile?.is_admin);
+  panel.classList.toggle("app-hidden", !isAdmin);
+  if (!isAdmin) return;
+
+  const pending = profiles.filter((profile) => profile.approval_status === "pending" && profile.auth_user_id);
+  list.innerHTML = pending.length
+    ? pending
+        .map(
+          (profile) => `
+            <div class="approval-row">
+              <div>
+                <strong>${escapeHtml(profile.full_name)}</strong>
+                <span>${escapeHtml(profile.role || t("teamFallback"))}</span>
+              </div>
+              <button class="primary-button" type="button" data-approve-user="${profile.id}">${t("approveButton")}</button>
+            </div>
+          `,
+        )
+        .join("")
+    : `<p class="empty-note">${t("noPendingUsers")}</p>`;
 }
 
 function renderBoard() {
@@ -626,8 +682,19 @@ async function addProfile(event) {
   const value = document.getElementById("user-name").value.trim();
   if (!value) return;
   const [fullName, role = t("teamFallback")] = value.split("/").map((part) => part.trim());
-  await supabase.from("profiles").insert({ full_name: fullName, role });
+  await supabase.from("profiles").insert({ full_name: fullName, role, approval_status: "approved" });
   document.getElementById("user-name").value = "";
+  await loadData();
+  renderAll();
+}
+
+async function approveUser(event) {
+  const button = event.target.closest("[data-approve-user]");
+  if (!button) return;
+  await supabase
+    .from("profiles")
+    .update({ approval_status: "approved" })
+    .eq("id", button.dataset.approveUser);
   await loadData();
   renderAll();
 }

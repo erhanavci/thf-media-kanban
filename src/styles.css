@@ -1292,6 +1292,42 @@ h1 span {
   color: rgba(255, 255, 255, 0.86);
 }
 
+.approval-list {
+  display: grid;
+  gap: 10px;
+}
+
+.approval-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 10px;
+}
+
+.approval-row div {
+  display: grid;
+  gap: 3px;
+}
+
+.approval-row strong {
+  color: #fff;
+  font-size: 0.92rem;
+}
+
+.approval-row span,
+.empty-note {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+}
+
+.empty-note {
+  margin: 0;
+}
+
 .column-heading {
   box-shadow: 0 14px 28px rgba(16, 32, 51, 0.14);
 }

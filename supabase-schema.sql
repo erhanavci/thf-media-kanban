@@ -5,6 +5,8 @@ create table if not exists public.profiles (
   auth_user_id uuid unique references auth.users(id) on delete cascade,
   full_name text not null,
   role text,
+  approval_status text default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
+  is_admin boolean default false,
   created_at timestamptz default now()
 );
 
