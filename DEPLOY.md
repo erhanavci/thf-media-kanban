@@ -36,3 +36,5 @@ Canlı URL açıldığında:
 2. Giriş yap
 3. Mart 2026 takviminde Excel görevlerini kontrol et
 4. Bir görev oluşturup dosya/ses notu ekle
+
+Last deploy trigger: 2026-04-30
