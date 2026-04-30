@@ -1026,3 +1026,318 @@ h1 span {
     grid-template-columns: 1fr;
   }
 }
+
+/* EURO 2026 corporate dark workflow skin */
+:root {
+  color-scheme: dark;
+  background: #07111f;
+  color: #fff;
+}
+
+.kanban-shell {
+  background:
+    linear-gradient(145deg, rgba(6, 14, 27, 0.98), rgba(10, 18, 32, 0.99)),
+    radial-gradient(circle at 8% 0%, rgba(227, 6, 19, 0.34), transparent 36%),
+    radial-gradient(circle at 100% 92%, rgba(0, 109, 183, 0.32), transparent 38%);
+  color: #fff;
+}
+
+.kanban-shell::before {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+.kanban-shell .pipeline-glow {
+  display: block;
+  opacity: 0.28;
+}
+
+.brand-lockup,
+.app-topbar,
+.auth-card-top {
+  display: flex;
+  align-items: center;
+}
+
+.brand-lockup {
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.brand-lockup img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.42));
+  box-shadow: none;
+}
+
+.brand-lockup span {
+  width: 1px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.brand-lockup.compact {
+  margin-bottom: 0;
+}
+
+.brand-lockup.compact img {
+  width: 54px;
+  height: 54px;
+}
+
+.app-topbar {
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.auth-card-top {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.auth-card-top strong {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.lang-toggle {
+  min-width: 54px;
+}
+
+.kanban-shell .pipeline-kicker {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.kanban-shell h1 {
+  max-width: 980px;
+  color: #fff;
+  font-size: clamp(2.9rem, 6.2vw, 6.2rem);
+  line-height: 0.94;
+}
+
+.kanban-shell h1 span {
+  margin-top: 10px;
+  color: #ff4d5b;
+  font-size: clamp(1.7rem, 3vw, 3rem);
+  line-height: 1.04;
+}
+
+.kanban-shell .hero-copy {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 1.02rem;
+}
+
+.auth-card,
+.board-panel,
+.editor-card,
+.calendar-panel,
+.session-bar {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.065)),
+    rgba(255, 255, 255, 0.06);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(18px);
+}
+
+.auth-tab,
+.ghost-button {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.auth-tab.active {
+  border-color: rgba(227, 6, 19, 0.65);
+  background: rgba(227, 6, 19, 0.2);
+  color: #fff;
+}
+
+.primary-button {
+  border-color: #d20a1e;
+  background: #d20a1e;
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(210, 10, 30, 0.22);
+}
+
+.toolbar-label,
+.session-bar span {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.board-toolbar h2,
+.panel-heading h2,
+.session-bar strong,
+.asset-list strong,
+.voice-box strong {
+  color: #fff;
+}
+
+.task-form label,
+.user-form label,
+.auth-form label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.auth-form input,
+.task-form input,
+.task-form textarea,
+.task-form select,
+.user-form input {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(7, 17, 31, 0.82);
+  color: #fff;
+}
+
+.task-form input:focus,
+.task-form textarea:focus,
+.task-form select:focus,
+.user-form input:focus,
+.auth-form input:focus {
+  border-color: rgba(0, 109, 183, 0.72);
+  box-shadow: 0 0 0 3px rgba(0, 109, 183, 0.14);
+}
+
+.calendar-panel {
+  overflow: hidden;
+}
+
+.calendar-panel .board-toolbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 14px;
+}
+
+.calendar-weekdays span {
+  color: rgba(255, 255, 255, 0.54);
+}
+
+.calendar-day {
+  min-height: 132px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(7, 17, 31, 0.58);
+}
+
+.calendar-day.has-tasks {
+  border-color: rgba(14, 165, 233, 0.32);
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.12), rgba(255, 255, 255, 0.055));
+}
+
+.calendar-date {
+  background: rgba(255, 255, 255, 0.11);
+  color: #fff;
+}
+
+.calendar-task {
+  border-color: rgba(227, 6, 19, 0.22);
+  background: rgba(227, 6, 19, 0.18);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.calendar-task:hover {
+  border-color: rgba(227, 6, 19, 0.58);
+  background: rgba(227, 6, 19, 0.28);
+}
+
+.task-stack {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(7, 17, 31, 0.42);
+}
+
+.task-card,
+.asset-link,
+.voice-note,
+.voice-box,
+.file-drop {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.task-card.selected {
+  border-color: rgba(227, 6, 19, 0.68);
+  background: rgba(227, 6, 19, 0.18);
+}
+
+.task-card span,
+.asset-list p,
+.voice-box span {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.task-card-meta {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.empty-state {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.user-pill {
+  border-color: rgba(14, 165, 233, 0.2);
+  background: rgba(14, 165, 233, 0.14);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.column-heading {
+  box-shadow: 0 14px 28px rgba(16, 32, 51, 0.14);
+}
+
+.tone-blue {
+  background: linear-gradient(135deg, #004c97, #0086c9);
+}
+
+.tone-gold {
+  background: linear-gradient(135deg, #b7791f, #f3c04d);
+}
+
+.tone-orange {
+  background: linear-gradient(135deg, #cf4a1a, #e86a33);
+}
+
+.tone-violet {
+  background: linear-gradient(135deg, #4956a4, #8d65c5);
+}
+
+.tone-rose,
+.tone-red {
+  background: linear-gradient(135deg, #b4001a, #e30613);
+}
+
+.tone-steel {
+  background: linear-gradient(135deg, #213246, #52677e);
+}
+
+.tone-green {
+  background: linear-gradient(135deg, #0b7a5c, #39a96b);
+}
+
+@media (max-width: 760px) {
+  .app-topbar,
+  .brand-lockup {
+    align-items: flex-start;
+  }
+
+  .brand-lockup img {
+    width: 58px;
+    height: 58px;
+  }
+
+  .brand-lockup.compact img {
+    width: 48px;
+    height: 48px;
+  }
+}

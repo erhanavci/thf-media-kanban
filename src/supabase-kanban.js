@@ -7,15 +7,164 @@ const SUPABASE_ANON_KEY =
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const columns = [
-  { id: "plan", day: "Pazartesi", title: "Strateji & Planlama", phase: "Planla", tone: "tone-blue" },
-  { id: "start", day: "Salı", title: "Üretim Başlangıcı", phase: "Üret", tone: "tone-gold" },
-  { id: "production", day: "Çarşamba", title: "İçerik Üretimi", phase: "Üret", tone: "tone-orange" },
-  { id: "approval", day: "Perşembe", title: "Onay & Hazırlık", phase: "Hazırla", tone: "tone-violet" },
-  { id: "publish", day: "Cuma", title: "Yayın Başlangıcı", phase: "Yayınla", tone: "tone-rose" },
-  { id: "live", day: "Cumartesi", title: "Canlı Operasyon", phase: "Canlı Yönet", tone: "tone-red" },
-  { id: "post", day: "Cumartesi", title: "Yayın Paketi", phase: "Yayınla", tone: "tone-steel" },
-  { id: "analysis", day: "Pazar", title: "Analiz & Optimizasyon", phase: "Analiz Et", tone: "tone-green" },
+  { id: "plan", dayTr: "Pazartesi", dayEn: "Monday", titleTr: "Strateji & Planlama", titleEn: "Strategy & Planning", phaseTr: "Planla", phaseEn: "Plan", tone: "tone-blue" },
+  { id: "start", dayTr: "Salı", dayEn: "Tuesday", titleTr: "Üretim Başlangıcı", titleEn: "Production Kickoff", phaseTr: "Üret", phaseEn: "Produce", tone: "tone-gold" },
+  { id: "production", dayTr: "Çarşamba", dayEn: "Wednesday", titleTr: "İçerik Üretimi", titleEn: "Content Production", phaseTr: "Üret", phaseEn: "Produce", tone: "tone-orange" },
+  { id: "approval", dayTr: "Perşembe", dayEn: "Thursday", titleTr: "Onay & Hazırlık", titleEn: "Approval & Prep", phaseTr: "Hazırla", phaseEn: "Prepare", tone: "tone-violet" },
+  { id: "publish", dayTr: "Cuma", dayEn: "Friday", titleTr: "Yayın Başlangıcı", titleEn: "Publishing Start", phaseTr: "Yayınla", phaseEn: "Publish", tone: "tone-rose" },
+  { id: "live", dayTr: "Cumartesi", dayEn: "Saturday", titleTr: "Canlı Operasyon", titleEn: "Live Operations", phaseTr: "Canlı Yönet", phaseEn: "Live Desk", tone: "tone-red" },
+  { id: "post", dayTr: "Cumartesi", dayEn: "Saturday", titleTr: "Yayın Paketi", titleEn: "Publishing Package", phaseTr: "Yayınla", phaseEn: "Publish", tone: "tone-steel" },
+  { id: "analysis", dayTr: "Pazar", dayEn: "Sunday", titleTr: "Analiz & Optimizasyon", titleEn: "Analysis & Optimization", phaseTr: "Analiz Et", phaseEn: "Analyze", tone: "tone-green" },
 ];
+
+const i18n = {
+  en: {
+    authKicker: "THF Media Team • Secure Operations Hub",
+    authHeadlineSub: "Coordinate every media operation.",
+    authCopy: "Sign in to manage campaign tasks, match-week assets, calendar milestones and team assignments from one professional workspace.",
+    accessTitle: "Workspace Access",
+    loginTab: "Login",
+    registerTab: "Register",
+    emailLabel: "Email",
+    passwordLabel: "Password",
+    loginButton: "Login",
+    nameLabel: "Full name",
+    roleLabel: "Role",
+    rolePlaceholder: "Video Editor",
+    registerButton: "Create Account",
+    appKicker: "THF Media Team • Integrated Event Workflow",
+    appHeadlineSub: "Plan. Produce. Publish. Report.",
+    appCopy: "A professional command center for content production, approvals, live operations, team assignments, files, voice notes and calendar-based delivery.",
+    currentUser: "Active user",
+    logout: "Logout",
+    calendarLabel: "Calendar",
+    weekdayMon: "Mon",
+    weekdayTue: "Tue",
+    weekdayWed: "Wed",
+    weekdayThu: "Thu",
+    weekdayFri: "Fri",
+    weekdaySat: "Sat",
+    weekdaySun: "Sun",
+    activeView: "Active view",
+    allButton: "All",
+    newTaskButton: "+ Task",
+    cardDetail: "Card detail",
+    titleLabel: "Title",
+    taskTitlePlaceholder: "Saturday reels package",
+    descriptionLabel: "Description",
+    taskDescPlaceholder: "Short note, content target or delivery criteria",
+    dateLabel: "Date",
+    columnLabel: "Column",
+    assigneesLabel: "Assignees",
+    uploadFile: "Upload file",
+    voiceNote: "Voice note",
+    voiceReady: "Ready",
+    recordStart: "Start Recording",
+    recordStop: "Stop Recording",
+    recorded: "Saved",
+    recording: "Recording",
+    micNeeded: "Microphone permission required",
+    clearButton: "Clear",
+    saveButton: "Save",
+    teamLabel: "Team",
+    defineUser: "Define User",
+    userPlaceholder: "Full name / role",
+    addButton: "Add",
+    allPipeline: "All Pipeline",
+    noTasks: "No tasks in this column.",
+    noDescription: "No description",
+    unassigned: "Unassigned",
+    undated: "Undated",
+    files: "files",
+    voice: "voice",
+    newTask: "New Task",
+    editTask: "Edit Task",
+    filesTitle: "Files",
+    voiceTitle: "Voice Notes",
+    noFiles: "No files yet.",
+    noVoices: "No voice notes yet.",
+    fileFallback: "File",
+    voiceFallback: "Voice note",
+    teamFallback: "Team",
+    loadingLogin: "Signing in...",
+    loadingRegister: "Creating account...",
+    confirmEmail: "Account created. If email confirmation is enabled in Supabase, confirm your email and then log in.",
+    dbError: "Database could not be read",
+  },
+  tr: {
+    authKicker: "THF Medya Ekibi • Güvenli Operasyon Merkezi",
+    authHeadlineSub: "Tüm medya operasyonunu koordine et.",
+    authCopy: "Kampanya görevlerini, maç haftası varlıklarını, takvim kilometre taşlarını ve ekip atamalarını tek profesyonel çalışma alanından yönet.",
+    accessTitle: "Çalışma Alanı Girişi",
+    loginTab: "Giriş",
+    registerTab: "Üyelik",
+    emailLabel: "E-posta",
+    passwordLabel: "Şifre",
+    loginButton: "Giriş Yap",
+    nameLabel: "Ad Soyad",
+    roleLabel: "Rol",
+    rolePlaceholder: "Video Editör",
+    registerButton: "Üye Ol",
+    appKicker: "THF Medya Ekibi • Entegre Etkinlik Workflow",
+    appHeadlineSub: "Planla. Üret. Yayınla. Raporla.",
+    appCopy: "İçerik üretimi, onaylar, canlı operasyon, ekip atamaları, dosyalar, ses notları ve takvim bazlı teslimler için profesyonel yönetim ekranı.",
+    currentUser: "Aktif kullanıcı",
+    logout: "Çıkış",
+    calendarLabel: "Takvim",
+    weekdayMon: "Pzt",
+    weekdayTue: "Sal",
+    weekdayWed: "Çar",
+    weekdayThu: "Per",
+    weekdayFri: "Cum",
+    weekdaySat: "Cmt",
+    weekdaySun: "Paz",
+    activeView: "Aktif görünüm",
+    allButton: "Tümü",
+    newTaskButton: "+ Görev",
+    cardDetail: "Kart detayı",
+    titleLabel: "Başlık",
+    taskTitlePlaceholder: "Cumartesi reels paketi",
+    descriptionLabel: "Açıklama",
+    taskDescPlaceholder: "Kısa not, içerik hedefi veya teslim kriteri",
+    dateLabel: "Tarih",
+    columnLabel: "Kolon",
+    assigneesLabel: "Kullanıcılar",
+    uploadFile: "Dosya yükle",
+    voiceNote: "Sesli not",
+    voiceReady: "Hazır",
+    recordStart: "Kayda Başla",
+    recordStop: "Kaydı Bitir",
+    recorded: "Kaydedildi",
+    recording: "Kayıt alınıyor",
+    micNeeded: "Mikrofon izni gerekli",
+    clearButton: "Temizle",
+    saveButton: "Kaydet",
+    teamLabel: "Ekip",
+    defineUser: "Kullanıcı Tanımla",
+    userPlaceholder: "Ad Soyad / rol",
+    addButton: "Ekle",
+    allPipeline: "Tüm Pipeline",
+    noTasks: "Bu kolonda görev yok.",
+    noDescription: "Açıklama yok",
+    unassigned: "Atanmadı",
+    undated: "Tarihsiz",
+    files: "dosya",
+    voice: "ses",
+    newTask: "Yeni Görev",
+    editTask: "Görevi Düzenle",
+    filesTitle: "Dosyalar",
+    voiceTitle: "Sesli Notlar",
+    noFiles: "Henüz dosya yok.",
+    noVoices: "Henüz sesli not yok.",
+    fileFallback: "Dosya",
+    voiceFallback: "Sesli not",
+    teamFallback: "Ekip",
+    loadingLogin: "Giriş yapılıyor...",
+    loadingRegister: "Üyelik oluşturuluyor...",
+    confirmEmail: "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.",
+    dbError: "Database okunamadı",
+  },
+};
 
 const importedTasks = [
   ["2026-03-02", "Championship announcement post (Graphic animation) v1 + Social ads", "publish", "Mar"],
@@ -55,6 +204,7 @@ let tasks = [];
 let selectedTaskId = "";
 let activeColumn = "all";
 let calendarMonth = "2026-03";
+let lang = localStorage.getItem("workflow-language") || "en";
 let pendingFiles = [];
 let pendingVoices = [];
 let recorder = null;
@@ -75,6 +225,7 @@ async function boot() {
   const { data } = await supabase.auth.getSession();
   session = data.session;
   wireEvents();
+  applyI18n();
   await renderShell();
 
   supabase.auth.onAuthStateChange(async (_event, nextSession) => {
@@ -84,6 +235,14 @@ async function boot() {
 }
 
 function wireEvents() {
+  document.querySelectorAll("[data-lang-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      lang = lang === "en" ? "tr" : "en";
+      localStorage.setItem("workflow-language", lang);
+      applyI18n();
+      renderAll();
+    });
+  });
   document.getElementById("login-tab").addEventListener("click", () => setAuthMode("login"));
   document.getElementById("register-tab").addEventListener("click", () => setAuthMode("register"));
   document.getElementById("login-form").addEventListener("submit", login);
@@ -135,7 +294,7 @@ function wireEvents() {
 
 async function login(event) {
   event.preventDefault();
-  setAuthMessage("Giriş yapılıyor...");
+  setAuthMessage(t("loadingLogin"));
   const { error } = await supabase.auth.signInWithPassword({
     email: document.getElementById("login-email").value.trim(),
     password: document.getElementById("login-password").value,
@@ -145,7 +304,7 @@ async function login(event) {
 
 async function register(event) {
   event.preventDefault();
-  setAuthMessage("Üyelik oluşturuluyor...");
+  setAuthMessage(t("loadingRegister"));
   const fullName = document.getElementById("register-name").value.trim();
   const role = document.getElementById("register-role").value.trim();
   const { data, error } = await supabase.auth.signUp({
@@ -165,7 +324,7 @@ async function register(event) {
       .upsert({ auth_user_id: data.user.id, full_name: fullName, role }, { onConflict: "auth_user_id" });
   }
 
-  setAuthMessage(data.session ? "" : "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.");
+  setAuthMessage(data.session ? "" : t("confirmEmail"));
 }
 
 async function renderShell() {
@@ -177,7 +336,7 @@ async function renderShell() {
   await seedImportedTasks();
   await loadData();
   document.getElementById("current-user-label").textContent =
-    `${currentProfile?.full_name || session.user.email} • ${currentProfile?.role || "Ekip"}`;
+    `${currentProfile?.full_name || session.user.email} • ${currentProfile?.role || t("teamFallback")}`;
   renderAll();
 }
 
@@ -195,7 +354,7 @@ async function ensureProfile() {
   const fallback = {
     auth_user_id: session.user.id,
     full_name: meta.full_name || session.user.email,
-    role: meta.role || "Ekip",
+    role: meta.role || t("teamFallback"),
   };
   const { data: inserted } = await supabase
     .from("profiles")
@@ -227,7 +386,7 @@ async function loadData() {
   ]);
 
   if (taskResult.error) {
-    setAuthMessage(`Database okunamadı: ${taskResult.error.message}`);
+    setAuthMessage(`${t("dbError")}: ${taskResult.error.message}`);
     return;
   }
 
@@ -248,6 +407,7 @@ async function loadData() {
 }
 
 function renderAll() {
+  applyI18n();
   renderSelectors();
   renderUsers();
   renderBoard();
@@ -257,22 +417,22 @@ function renderAll() {
 
 function renderSelectors() {
   document.getElementById("task-column").innerHTML = columns
-    .map((column) => `<option value="${column.id}">${column.day} - ${column.title}</option>`)
+    .map((column) => `<option value="${column.id}">${colDay(column)} - ${colTitle(column)}</option>`)
     .join("");
   document.getElementById("task-user").innerHTML = profiles
-    .map((profile) => `<option value="${profile.id}">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || "Ekip")}</option>`)
+    .map((profile) => `<option value="${profile.id}">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || t("teamFallback"))}</option>`)
     .join("");
 }
 
 function renderUsers() {
   document.getElementById("user-list").innerHTML = profiles
-    .map((profile) => `<span class="user-pill">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || "Ekip")}</span>`)
+    .map((profile) => `<span class="user-pill">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || t("teamFallback"))}</span>`)
     .join("");
 }
 
 function renderBoard() {
   const active = columns.find((column) => column.id === activeColumn);
-  document.getElementById("active-view-title").textContent = active ? active.title : "Tüm Pipeline";
+  document.getElementById("active-view-title").textContent = active ? colTitle(active) : t("allPipeline");
   const visibleColumns = activeColumn === "all" ? columns : columns.filter((column) => column.id === activeColumn);
   board.innerHTML = visibleColumns
     .map((column) => {
@@ -280,12 +440,12 @@ function renderBoard() {
       return `
         <section class="kanban-column" data-column="${column.id}">
           <button class="column-heading ${column.tone}" type="button" data-filter="${column.id}">
-            <span>${column.day}</span>
-            <strong>${column.title}</strong>
-            <em>${column.phase}</em>
+            <span>${colDay(column)}</span>
+            <strong>${colTitle(column)}</strong>
+            <em>${colPhase(column)}</em>
           </button>
           <div class="task-stack" data-drop-column="${column.id}">
-            ${columnTasks.length ? columnTasks.map(renderTaskCard).join("") : `<div class="empty-state">Bu kolonda görev yok.</div>`}
+            ${columnTasks.length ? columnTasks.map(renderTaskCard).join("") : `<div class="empty-state">${t("noTasks")}</div>`}
           </div>
         </section>
       `;
@@ -298,10 +458,10 @@ function renderTaskCard(task) {
   return `
     <button class="task-card ${selected}" type="button" draggable="true" data-task="${task.id}">
       <strong>${escapeHtml(task.title)}</strong>
-      <span>${escapeHtml(task.desc || "Açıklama yok")}</span>
+      <span>${escapeHtml(task.desc || t("noDescription"))}</span>
       <div class="task-card-meta">
         <small>${escapeHtml(labelAssignees(task.assignees))}</small>
-        <small>${task.date ? formatDate(task.date) : "Tarihsiz"} • ${task.files.length} dosya • ${task.voices.length} ses</small>
+        <small>${task.date ? formatDate(task.date) : t("undated")} • ${task.files.length} ${t("files")} • ${task.voices.length} ${t("voice")}</small>
       </div>
     </button>
   `;
@@ -313,7 +473,7 @@ function renderCalendar() {
   const dayCount = new Date(year, month, 0).getDate();
   const leadingBlanks = (firstDay.getDay() + 6) % 7;
   const cells = [];
-  document.getElementById("calendar-title").textContent = new Intl.DateTimeFormat("tr-TR", {
+  document.getElementById("calendar-title").textContent = new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
     month: "long",
     year: "numeric",
   }).format(firstDay);
@@ -336,7 +496,7 @@ function renderCalendar() {
 
 function renderEditor() {
   const task = getSelectedTask();
-  document.getElementById("editor-title").textContent = task ? "Görevi Düzenle" : "Yeni Görev";
+  document.getElementById("editor-title").textContent = task ? t("editTask") : t("newTask");
   document.getElementById("task-id").value = task?.id || "";
   document.getElementById("task-title").value = task?.title || "";
   document.getElementById("task-desc").value = task?.desc || "";
@@ -351,23 +511,23 @@ function renderAssets(task) {
   const voices = [...(task?.voices || []), ...pendingVoices.map((voice) => ({ file_name: voice.name }))];
   document.getElementById("asset-list").innerHTML = `
     <div>
-      <strong>Dosyalar</strong>
-      ${files.length ? files.map(renderFile).join("") : `<p>Henüz dosya yok.</p>`}
+      <strong>${t("filesTitle")}</strong>
+      ${files.length ? files.map(renderFile).join("") : `<p>${t("noFiles")}</p>`}
     </div>
     <div>
-      <strong>Sesli Notlar</strong>
-      ${voices.length ? voices.map(renderVoice).join("") : `<p>Henüz sesli not yok.</p>`}
+      <strong>${t("voiceTitle")}</strong>
+      ${voices.length ? voices.map(renderVoice).join("") : `<p>${t("noVoices")}</p>`}
     </div>
   `;
 }
 
 function renderFile(file) {
   const href = file.file_url || "#";
-  return `<a class="asset-link" href="${href}" target="_blank" rel="noreferrer"><span>${escapeHtml(file.file_name || "Dosya")}</span><small>${escapeHtml(file.file_type || "")}</small></a>`;
+  return `<a class="asset-link" href="${href}" target="_blank" rel="noreferrer"><span>${escapeHtml(file.file_name || t("fileFallback"))}</span><small>${escapeHtml(file.file_type || "")}</small></a>`;
 }
 
 function renderVoice(voice) {
-  return `<div class="voice-note">${voice.audio_url ? `<audio controls src="${voice.audio_url}"></audio>` : ""}<small>${escapeHtml(voice.file_name || "Sesli not")}</small></div>`;
+  return `<div class="voice-note">${voice.audio_url ? `<audio controls src="${voice.audio_url}"></audio>` : ""}<small>${escapeHtml(voice.file_name || t("voiceFallback"))}</small></div>`;
 }
 
 function handleBoardClick(event) {
@@ -465,7 +625,7 @@ async function addProfile(event) {
   event.preventDefault();
   const value = document.getElementById("user-name").value.trim();
   if (!value) return;
-  const [fullName, role = "Ekip"] = value.split("/").map((part) => part.trim());
+  const [fullName, role = t("teamFallback")] = value.split("/").map((part) => part.trim());
   await supabase.from("profiles").insert({ full_name: fullName, role });
   document.getElementById("user-name").value = "";
   await loadData();
@@ -488,18 +648,18 @@ async function toggleRecording() {
     recorder.addEventListener("stop", () => {
       stream.getTracks().forEach((track) => track.stop());
       pendingVoices.push({
-        name: `Sesli not ${new Date().toLocaleTimeString("tr-TR")}`,
+        name: `${t("voiceFallback")} ${new Date().toLocaleTimeString(lang === "tr" ? "tr-TR" : "en-US")}`,
         blob: new Blob(recordedChunks, { type: "audio/webm" }),
       });
-      recordButton.textContent = "Kayda Başla";
-      voiceStatus.textContent = "Kaydedildi";
+      recordButton.textContent = t("recordStart");
+      voiceStatus.textContent = t("recorded");
       renderAssets(getSelectedTask());
     });
     recorder.start();
-    recordButton.textContent = "Kaydı Bitir";
-    voiceStatus.textContent = "Kayıt alınıyor";
+    recordButton.textContent = t("recordStop");
+    voiceStatus.textContent = t("recording");
   } catch {
-    voiceStatus.textContent = "Mikrofon izni gerekli";
+    voiceStatus.textContent = t("micNeeded");
   }
 }
 
@@ -535,7 +695,7 @@ function setSelectedAssignees(assignees) {
 }
 
 function labelAssignees(ids) {
-  if (!ids.length) return "Atanmadı";
+  if (!ids.length) return t("unassigned");
   return ids
     .map((id) => profiles.find((profile) => profile.id === id))
     .filter(Boolean)
@@ -555,8 +715,37 @@ function setAuthMessage(message) {
   authMessage.textContent = message;
 }
 
+function t(key) {
+  return i18n[lang]?.[key] || i18n.en[key] || key;
+}
+
+function applyI18n() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll("[data-lang-toggle]").forEach((node) => {
+    node.textContent = lang === "en" ? "TR" : "EN";
+  });
+}
+
+function colDay(column) {
+  return lang === "tr" ? column.dayTr : column.dayEn;
+}
+
+function colTitle(column) {
+  return lang === "tr" ? column.titleTr : column.titleEn;
+}
+
+function colPhase(column) {
+  return lang === "tr" ? column.phaseTr : column.phaseEn;
+}
+
 function formatDate(date) {
-  return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
+  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
 }
 
 function safeName(name) {

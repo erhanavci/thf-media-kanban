@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>THF Medya Kanban</title>
+    <title>EURO 2026 Workflow</title>
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
@@ -13,53 +13,62 @@
 
       <section class="auth-layout" id="auth-screen" aria-labelledby="auth-title">
         <div class="auth-copy">
-          <p class="pipeline-kicker">THF Medya Ekibi • Güvenli Çalışma Alanı</p>
+          <div class="brand-lockup">
+            <img src="./assets/thf-logo.png" alt="THF" />
+            <span></span>
+            <img src="./assets/ehf-euro-logo.png" alt="EHF EURO 2026" />
+          </div>
+          <p class="pipeline-kicker" data-i18n="authKicker">THF Media Team • Secure Operations Hub</p>
           <h1 id="auth-title">
-            Ekibini bağla.
-            <span>Pipeline'ı yönet.</span>
+            EURO 2026 WORKFLOW
+            <span data-i18n="authHeadlineSub">Coordinate every media operation.</span>
           </h1>
-          <p class="hero-copy">
-            Üye oluştur, giriş yap ve haftalık medya kanbanına kullanıcı bazlı görev atamalarıyla
-            devam et.
+          <p class="hero-copy" data-i18n="authCopy">
+            Sign in to manage campaign tasks, match-week assets, calendar milestones and team
+            assignments from one professional workspace.
           </p>
         </div>
 
         <section class="auth-card" aria-label="Giriş ve üyelik">
+          <div class="auth-card-top">
+            <strong data-i18n="accessTitle">Workspace Access</strong>
+            <button class="ghost-button lang-toggle" type="button" data-lang-toggle>TR</button>
+          </div>
           <div class="auth-tabs" role="tablist" aria-label="Giriş seçenekleri">
-            <button class="auth-tab active" type="button" id="login-tab">Giriş</button>
-            <button class="auth-tab" type="button" id="register-tab">Üyelik</button>
+            <button class="auth-tab active" type="button" id="login-tab" data-i18n="loginTab">Login</button>
+            <button class="auth-tab" type="button" id="register-tab" data-i18n="registerTab">Register</button>
           </div>
 
           <form id="login-form" class="auth-form">
             <label>
-              E-posta
+              <span data-i18n="emailLabel">Email</span>
               <input id="login-email" type="email" autocomplete="email" required />
             </label>
             <label>
-              Şifre
+              <span data-i18n="passwordLabel">Password</span>
               <input id="login-password" type="password" autocomplete="current-password" required />
             </label>
-            <button class="primary-button" type="submit">Giriş Yap</button>
+            <button class="primary-button" type="submit" data-i18n="loginButton">Login</button>
           </form>
 
           <form id="register-form" class="auth-form hidden">
             <label>
-              Ad Soyad
+              <span data-i18n="nameLabel">Full name</span>
               <input id="register-name" type="text" autocomplete="name" required />
             </label>
             <label>
-              Rol
-              <input id="register-role" type="text" placeholder="Örn. Video Editör" required />
+              <span data-i18n="roleLabel">Role</span>
+              <input id="register-role" type="text" placeholder="Video Editor" data-i18n-placeholder="rolePlaceholder" required />
             </label>
             <label>
-              E-posta
+              <span data-i18n="emailLabel">Email</span>
               <input id="register-email" type="email" autocomplete="email" required />
             </label>
             <label>
-              Şifre
+              <span data-i18n="passwordLabel">Password</span>
               <input id="register-password" type="password" autocomplete="new-password" minlength="4" required />
             </label>
-            <button class="primary-button" type="submit">Üye Ol</button>
+            <button class="primary-button" type="submit" data-i18n="registerButton">Create Account</button>
           </form>
 
           <p class="auth-message" id="auth-message"></p>
@@ -68,30 +77,38 @@
 
       <section class="pipeline-layout kanban-layout app-hidden" id="app-screen" aria-labelledby="pipeline-title">
         <header class="pipeline-hero kanban-hero">
-          <p class="pipeline-kicker">THF Medya Ekibi • Kanban Pipeline</p>
+          <div class="app-topbar">
+            <div class="brand-lockup compact">
+              <img src="./assets/thf-logo.png" alt="THF" />
+              <span></span>
+              <img src="./assets/ehf-euro-logo.png" alt="EHF EURO 2026" />
+            </div>
+            <button class="ghost-button lang-toggle" type="button" data-lang-toggle>TR</button>
+          </div>
+          <p class="pipeline-kicker" data-i18n="appKicker">THF Media Team • Integrated Event Workflow</p>
           <div class="hero-grid">
             <h1 id="pipeline-title">
-              Planla. Üret. Yayınla.
-              <span>Takip Et. Paylaş. Bitir.</span>
+              EURO 2026 WORKFLOW
+              <span data-i18n="appHeadlineSub">Plan. Produce. Publish. Report.</span>
             </h1>
-            <p class="hero-copy">
-              Kolon başlıklarına tıklayarak haftalık akışı filtrele; kartlara dosya, kullanıcı ve
-              sesli not ekleyerek maç haftası operasyonunu tek yerden yönet.
+            <p class="hero-copy" data-i18n="appCopy">
+              A professional command center for content production, approvals, live operations,
+              team assignments, files, voice notes and calendar-based delivery.
             </p>
           </div>
           <div class="session-bar">
             <div>
-              <span>Aktif kullanıcı</span>
+              <span data-i18n="currentUser">Active user</span>
               <strong id="current-user-label">-</strong>
             </div>
-            <button class="ghost-button" type="button" id="logout-button">Çıkış</button>
+            <button class="ghost-button" type="button" id="logout-button" data-i18n="logout">Logout</button>
           </div>
         </header>
 
         <section class="calendar-panel" aria-label="Görev takvimi">
           <div class="board-toolbar">
             <div>
-              <p class="toolbar-label">Takvim</p>
+              <p class="toolbar-label" data-i18n="calendarLabel">Calendar</p>
               <h2 id="calendar-title">Görev Takvimi</h2>
             </div>
             <div class="toolbar-actions">
@@ -100,13 +117,13 @@
             </div>
           </div>
           <div class="calendar-weekdays" aria-hidden="true">
-            <span>Pzt</span>
-            <span>Sal</span>
-            <span>Çar</span>
-            <span>Per</span>
-            <span>Cum</span>
-            <span>Cmt</span>
-            <span>Paz</span>
+            <span data-i18n="weekdayMon">Mon</span>
+            <span data-i18n="weekdayTue">Tue</span>
+            <span data-i18n="weekdayWed">Wed</span>
+            <span data-i18n="weekdayThu">Thu</span>
+            <span data-i18n="weekdayFri">Fri</span>
+            <span data-i18n="weekdaySat">Sat</span>
+            <span data-i18n="weekdaySun">Sun</span>
           </div>
           <div class="calendar-grid" id="calendar-grid"></div>
         </section>
@@ -115,12 +132,12 @@
           <div class="board-panel">
             <div class="board-toolbar">
               <div>
-                <p class="toolbar-label">Aktif görünüm</p>
+                <p class="toolbar-label" data-i18n="activeView">Active view</p>
                 <h2 id="active-view-title">Tüm Pipeline</h2>
               </div>
               <div class="toolbar-actions">
-                <button class="ghost-button" type="button" id="show-all-button">Tümü</button>
-                <button class="primary-button" type="button" id="new-task-button">+ Görev</button>
+                <button class="ghost-button" type="button" id="show-all-button" data-i18n="allButton">All</button>
+                <button class="primary-button" type="button" id="new-task-button" data-i18n="newTaskButton">+ Task</button>
               </div>
             </div>
             <div class="kanban-board" id="kanban-board" aria-live="polite"></div>
@@ -129,7 +146,7 @@
           <aside class="side-panel" aria-label="Görev ve kullanıcı paneli">
             <section class="editor-card">
               <div class="panel-heading">
-                <p class="toolbar-label">Kart Detayı</p>
+                <p class="toolbar-label" data-i18n="cardDetail">Card detail</p>
                 <h2 id="editor-title">Yeni Görev</h2>
               </div>
 
@@ -137,62 +154,62 @@
                 <input type="hidden" id="task-id" />
 
                 <label>
-                  Başlık
-                  <input id="task-title" type="text" placeholder="Örn. Cumartesi reels paketi" required />
+                  <span data-i18n="titleLabel">Title</span>
+                  <input id="task-title" type="text" placeholder="Saturday reels package" data-i18n-placeholder="taskTitlePlaceholder" required />
                 </label>
 
                 <label>
-                  Açıklama
-                  <textarea id="task-desc" rows="4" placeholder="Kısa not, içerik hedefi veya teslim kriteri"></textarea>
+                  <span data-i18n="descriptionLabel">Description</span>
+                  <textarea id="task-desc" rows="4" placeholder="Short note, content target or delivery criteria" data-i18n-placeholder="taskDescPlaceholder"></textarea>
                 </label>
 
                 <div class="form-grid">
                   <label>
-                    Tarih
+                    <span data-i18n="dateLabel">Date</span>
                     <input id="task-date" type="date" />
                   </label>
                   <label>
-                    Kolon
+                    <span data-i18n="columnLabel">Column</span>
                     <select id="task-column"></select>
                   </label>
                 </div>
                 <div class="form-grid">
                   <label>
-                    Kullanıcılar
+                    <span data-i18n="assigneesLabel">Assignees</span>
                     <select id="task-user" multiple></select>
                   </label>
                 </div>
 
                 <label class="file-drop">
-                  <span>Dosya yükle</span>
+                  <span data-i18n="uploadFile">Upload file</span>
                   <input id="task-files" type="file" multiple />
                 </label>
 
                 <div class="voice-box">
                   <div>
-                    <strong>Sesli not</strong>
-                    <span id="voice-status">Hazır</span>
+                    <strong data-i18n="voiceNote">Voice note</strong>
+                    <span id="voice-status" data-i18n="voiceReady">Ready</span>
                   </div>
-                  <button class="ghost-button" type="button" id="record-button">Kayda Başla</button>
+                  <button class="ghost-button" type="button" id="record-button" data-i18n="recordStart">Start Recording</button>
                 </div>
 
                 <div class="asset-list" id="asset-list"></div>
 
                 <div class="form-actions">
-                  <button class="ghost-button" type="button" id="clear-button">Temizle</button>
-                  <button class="primary-button" type="submit">Kaydet</button>
+                  <button class="ghost-button" type="button" id="clear-button" data-i18n="clearButton">Clear</button>
+                  <button class="primary-button" type="submit" data-i18n="saveButton">Save</button>
                 </div>
               </form>
             </section>
 
             <section class="editor-card compact-card">
               <div class="panel-heading">
-                <p class="toolbar-label">Ekip</p>
-                <h2>Kullanıcı Tanımla</h2>
+                <p class="toolbar-label" data-i18n="teamLabel">Team</p>
+                <h2 data-i18n="defineUser">Define User</h2>
               </div>
               <form id="user-form" class="user-form">
-                <input id="user-name" type="text" placeholder="Ad Soyad / rol" required />
-                <button class="primary-button" type="submit">Ekle</button>
+                <input id="user-name" type="text" placeholder="Full name / role" data-i18n-placeholder="userPlaceholder" required />
+                <button class="primary-button" type="submit" data-i18n="addButton">Add</button>
               </form>
               <div class="user-list" id="user-list"></div>
             </section>
