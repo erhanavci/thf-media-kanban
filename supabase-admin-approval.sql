@@ -104,5 +104,5 @@ create policy "voice notes write approved" on public.voice_notes
 -- update public.profiles
 -- set approval_status = 'approved', is_admin = true
 -- where auth_user_id = (
---   select id from auth.users where email = 'YOUR_EMAIL_HERE'
+--   select id from auth.users where email = 'erhan.avci@thf.org.tr'
 -- );
