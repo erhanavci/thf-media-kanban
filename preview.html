@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THF Medya Kanban</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="pipeline-shell kanban-shell">
+      <div class="pipeline-glow pipeline-glow-red"></div>
+      <div class="pipeline-glow pipeline-glow-cyan"></div>
+
+      <section class="auth-layout" id="auth-screen" aria-labelledby="auth-title">
+        <div class="auth-copy">
+          <p class="pipeline-kicker">THF Medya Ekibi • Güvenli Çalışma Alanı</p>
+          <h1 id="auth-title">
+            Ekibini bağla.
+            <span>Pipeline'ı yönet.</span>
+          </h1>
+          <p class="hero-copy">
+            Üye oluştur, giriş yap ve haftalık medya kanbanına kullanıcı bazlı görev atamalarıyla
+            devam et.
+          </p>
+        </div>
+
+        <section class="auth-card" aria-label="Giriş ve üyelik">
+          <div class="auth-tabs" role="tablist" aria-label="Giriş seçenekleri">
+            <button class="auth-tab active" type="button" id="login-tab">Giriş</button>
+            <button class="auth-tab" type="button" id="register-tab">Üyelik</button>
+          </div>
+
+          <form id="login-form" class="auth-form">
+            <label>
+              E-posta
+              <input id="login-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Şifre
+              <input id="login-password" type="password" autocomplete="current-password" required />
+            </label>
+            <button class="primary-button" type="submit">Giriş Yap</button>
+          </form>
+
+          <form id="register-form" class="auth-form hidden">
+            <label>
+              Ad Soyad
+              <input id="register-name" type="text" autocomplete="name" required />
+            </label>
+            <label>
+              Rol
+              <input id="register-role" type="text" placeholder="Örn. Video Editör" required />
+            </label>
+            <label>
+              E-posta
+              <input id="register-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Şifre
+              <input id="register-password" type="password" autocomplete="new-password" minlength="4" required />
+            </label>
+            <button class="primary-button" type="submit">Üye Ol</button>
+          </form>
+
+          <p class="auth-message" id="auth-message"></p>
+        </section>
+      </section>
+
+      <section class="pipeline-layout kanban-layout app-hidden" id="app-screen" aria-labelledby="pipeline-title">
+        <header class="pipeline-hero kanban-hero">
+          <p class="pipeline-kicker">THF Medya Ekibi • Kanban Pipeline</p>
+          <div class="hero-grid">
+            <h1 id="pipeline-title">
+              Planla. Üret. Yayınla.
+              <span>Takip Et. Paylaş. Bitir.</span>
+            </h1>
+            <p class="hero-copy">
+              Kolon başlıklarına tıklayarak haftalık akışı filtrele; kartlara dosya, kullanıcı ve
+              sesli not ekleyerek maç haftası operasyonunu tek yerden yönet.
+            </p>
+          </div>
+          <div class="session-bar">
+            <div>
+              <span>Aktif kullanıcı</span>
+              <strong id="current-user-label">-</strong>
+            </div>
+            <button class="ghost-button" type="button" id="logout-button">Çıkış</button>
+          </div>
+        </header>
+
+        <section class="calendar-panel" aria-label="Görev takvimi">
+          <div class="board-toolbar">
+            <div>
+              <p class="toolbar-label">Takvim</p>
+              <h2 id="calendar-title">Görev Takvimi</h2>
+            </div>
+            <div class="toolbar-actions">
+              <button class="ghost-button icon-button" type="button" id="calendar-prev" aria-label="Önceki ay">‹</button>
+              <button class="ghost-button icon-button" type="button" id="calendar-next" aria-label="Sonraki ay">›</button>
+            </div>
+          </div>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>Pzt</span>
+            <span>Sal</span>
+            <span>Çar</span>
+            <span>Per</span>
+            <span>Cum</span>
+            <span>Cmt</span>
+            <span>Paz</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </section>
+
+        <section class="workspace-grid" aria-label="Kanban çalışma alanı">
+          <div class="board-panel">
+            <div class="board-toolbar">
+              <div>
+                <p class="toolbar-label">Aktif görünüm</p>
+                <h2 id="active-view-title">Tüm Pipeline</h2>
+              </div>
+              <div class="toolbar-actions">
+                <button class="ghost-button" type="button" id="show-all-button">Tümü</button>
+                <button class="primary-button" type="button" id="new-task-button">+ Görev</button>
+              </div>
+            </div>
+            <div class="kanban-board" id="kanban-board" aria-live="polite"></div>
+          </div>
+
+          <aside class="side-panel" aria-label="Görev ve kullanıcı paneli">
+            <section class="editor-card">
+              <div class="panel-heading">
+                <p class="toolbar-label">Kart Detayı</p>
+                <h2 id="editor-title">Yeni Görev</h2>
+              </div>
+
+              <form id="task-form" class="task-form">
+                <input type="hidden" id="task-id" />
+
+                <label>
+                  Başlık
+                  <input id="task-title" type="text" placeholder="Örn. Cumartesi reels paketi" required />
+                </label>
+
+                <label>
+                  Açıklama
+                  <textarea id="task-desc" rows="4" placeholder="Kısa not, içerik hedefi veya teslim kriteri"></textarea>
+                </label>
+
+                <div class="form-grid">
+                  <label>
+                    Tarih
+                    <input id="task-date" type="date" />
+                  </label>
+                  <label>
+                    Kolon
+                    <select id="task-column"></select>
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Kullanıcılar
+                    <select id="task-user" multiple></select>
+                  </label>
+                </div>
+
+                <label class="file-drop">
+                  <span>Dosya yükle</span>
+                  <input id="task-files" type="file" multiple />
+                </label>
+
+                <div class="voice-box">
+                  <div>
+                    <strong>Sesli not</strong>
+                    <span id="voice-status">Hazır</span>
+                  </div>
+                  <button class="ghost-button" type="button" id="record-button">Kayda Başla</button>
+                </div>
+
+                <div class="asset-list" id="asset-list"></div>
+
+                <div class="form-actions">
+                  <button class="ghost-button" type="button" id="clear-button">Temizle</button>
+                  <button class="primary-button" type="submit">Kaydet</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="editor-card compact-card">
+              <div class="panel-heading">
+                <p class="toolbar-label">Ekip</p>
+                <h2>Kullanıcı Tanımla</h2>
+              </div>
+              <form id="user-form" class="user-form">
+                <input id="user-name" type="text" placeholder="Ad Soyad / rol" required />
+                <button class="primary-button" type="submit">Ekle</button>
+              </form>
+              <div class="user-list" id="user-list"></div>
+            </section>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./src/supabase-kanban.js"></script>
+  </body>
+</html>

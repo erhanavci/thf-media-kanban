@@ -1,0 +1,12 @@
+{
+  "name": "thf-media-pipeline-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo Static site ready",
+    "start": "echo Open preview.html"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
