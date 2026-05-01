@@ -24,6 +24,11 @@ const priorities = [
   { id: "urgent", labelTr: "Acil", labelEn: "Urgent" },
 ];
 
+const progressStates = [
+  { id: "ongoing", labelTr: "Devam ediyor", labelEn: "Ongoing" },
+  { id: "completed", labelTr: "Tamamlandı", labelEn: "Completed" },
+];
+
 const i18n = {
   en: {
     authKicker: "THF Media Team • Secure Operations Hub",
@@ -64,6 +69,7 @@ const i18n = {
     dateLabel: "Date",
     deadlineLabel: "Deadline",
     priorityLabel: "Priority",
+    progressLabel: "Status",
     assigneesLabel: "Assignees",
     uploadFile: "Upload file",
     voiceNote: "Voice note",
@@ -78,6 +84,11 @@ const i18n = {
     deleteConfirm: "Delete this task?",
     removeAsset: "Remove",
     removeAssetConfirm: "Remove this item?",
+    notesTitle: "Notes",
+    notePlaceholder: "Add a note",
+    addNoteButton: "Add Note",
+    noNotes: "No notes yet.",
+    taskUpdatedNotificationTitle: "Task updated",
     saveButton: "Save",
     teamLabel: "Team",
     defineUser: "Define User",
@@ -156,6 +167,7 @@ const i18n = {
     dateLabel: "Tarih",
     deadlineLabel: "Deadline",
     priorityLabel: "Öncelik",
+    progressLabel: "Durum",
     assigneesLabel: "Kullanıcılar",
     uploadFile: "Dosya yükle",
     voiceNote: "Sesli not",
@@ -170,6 +182,11 @@ const i18n = {
     deleteConfirm: "Bu görev silinsin mi?",
     removeAsset: "Sil",
     removeAssetConfirm: "Bu kayıt silinsin mi?",
+    notesTitle: "Notlar",
+    notePlaceholder: "Not ekle",
+    addNoteButton: "Not Ekle",
+    noNotes: "Henüz not yok.",
+    taskUpdatedNotificationTitle: "Görev güncellendi",
     saveButton: "Kaydet",
     teamLabel: "Ekip",
     defineUser: "Kullanıcı Tanımla",
@@ -256,6 +273,8 @@ let recorder = null;
 let recordedChunks = [];
 let notificationBaselineReady = false;
 let dataChannel = null;
+let taskFingerprints = new Map();
+let recentLocalEdits = new Set();
 
 const authScreen = document.getElementById("auth-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -330,6 +349,7 @@ function wireEvents() {
     renderAssets(getSelectedTask());
   });
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
+  document.getElementById("add-note-button").addEventListener("click", addTaskNote);
   document.getElementById("task-date").addEventListener("change", (event) => {
     if (activeColumn === "all") {
       document.getElementById("task-column").value = columnFromDate(event.target.value);
@@ -455,6 +475,7 @@ function subscribeDataChanges() {
     .on("postgres_changes", { event: "*", schema: "public", table: "task_assignees" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "task_files" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "task_notes" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refreshData)
     .subscribe();
 }
@@ -506,12 +527,13 @@ async function seedImportedTasks() {
 }
 
 async function loadData() {
-  const [profileResult, taskResult, assigneeResult, fileResult, voiceResult] = await Promise.all([
+  const [profileResult, taskResult, assigneeResult, fileResult, voiceResult, noteResult] = await Promise.all([
     supabase.from("profiles").select("*").order("full_name"),
     supabase.from("tasks").select("*").order("task_date", { ascending: true, nullsFirst: false }),
     supabase.from("task_assignees").select("*"),
     supabase.from("task_files").select("*"),
     supabase.from("voice_notes").select("*"),
+    supabase.from("task_notes").select("*").order("created_at", { ascending: false }),
   ]);
 
   if (taskResult.error) {
@@ -523,6 +545,7 @@ async function loadData() {
   const assigneesByTask = groupBy(assigneeResult.data || [], "task_id");
   const filesByTask = groupBy(fileResult.data || [], "task_id");
   const voicesByTask = groupBy(voiceResult.data || [], "task_id");
+  const notesByTask = groupBy(noteResult.data || [], "task_id");
   tasks = (taskResult.data || []).map((task) => ({
     id: task.id,
     column: task.status,
@@ -531,12 +554,14 @@ async function loadData() {
     date: task.task_date || "",
     deadline: task.deadline_date || "",
     priority: task.priority || "medium",
+    progress: task.progress_status || "ongoing",
     createdBy: task.created_by || "",
     assignees: (assigneesByTask[task.id] || []).map((row) => row.user_id),
     files: filesByTask[task.id] || [],
     voices: voicesByTask[task.id] || [],
+    notes: notesByTask[task.id] || [],
   }));
-  notifyNewAssignedTasks();
+  notifyAssignedTaskChanges();
 }
 
 function renderAll() {
@@ -552,6 +577,9 @@ function renderAll() {
 function renderSelectors() {
   document.getElementById("task-priority").innerHTML = priorities
     .map((priority) => `<option value="${priority.id}">${priorityLabel(priority.id)}</option>`)
+    .join("");
+  document.getElementById("task-progress").innerHTML = progressStates
+    .map((progress) => `<option value="${progress.id}">${progressLabel(progress.id)}</option>`)
     .join("");
   renderAssigneeChecklist(getSelectedTask()?.assignees || []);
 }
@@ -627,13 +655,17 @@ function renderBoard() {
 
 function renderTaskCard(task) {
   const selected = task.id === selectedTaskId ? "selected" : "";
+  const completed = task.progress === "completed" ? "completed" : "";
   const thumbs = task.files.filter((file) => isImageFile(file)).slice(0, 3);
   const firstVoice = task.voices.find((voice) => voice.audio_url);
   return `
-    <div class="task-card priority-${escapeHtml(task.priority)} ${selected}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
+    <div class="task-card priority-${escapeHtml(task.priority)} ${completed} ${selected}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
       <div class="task-card-topline">
         <strong>${escapeHtml(task.title)}</strong>
-        <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
+        <div class="task-card-badges">
+          <em class="progress-pill progress-${escapeHtml(task.progress)}">${progressLabel(task.progress)}</em>
+          <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
+        </div>
       </div>
       <span>${escapeHtml(task.desc || t("noDescription"))}</span>
       ${
@@ -691,10 +723,12 @@ function renderEditor() {
   document.getElementById("task-date").value = task?.date || "";
   document.getElementById("task-deadline").value = task?.deadline || "";
   document.getElementById("task-priority").value = task?.priority || "medium";
+  document.getElementById("task-progress").value = task?.progress || "ongoing";
   document.getElementById("task-column").value = task?.column || defaultColumn;
   document.getElementById("delete-task-button").classList.toggle("app-hidden", !task);
   setSelectedAssignees(task?.assignees || []);
   renderAssets(task);
+  renderNotes(task);
 }
 
 function openTaskModal() {
@@ -745,14 +779,38 @@ function renderFile(file) {
 }
 
 function renderVoice(voice) {
+  const author = labelAuthUser(voice.created_by);
+  const meta = [author, voice.created_at ? formatDateTime(voice.created_at) : ""].filter(Boolean).join(" • ");
   const action = voice.source === "pending"
     ? `<button class="asset-remove" type="button" data-remove-pending-voice="${voice.pendingIndex}">${t("removeAsset")}</button>`
     : `<button class="asset-remove" type="button" data-delete-voice="${voice.id}">${t("removeAsset")}</button>`;
   return `
     <div class="asset-row">
-      <div class="voice-note">${voice.audio_url ? `<audio controls preload="metadata" src="${voice.audio_url}"></audio>` : ""}<small>${escapeHtml(voice.file_name || t("voiceFallback"))}</small></div>
+      <div class="voice-note">
+        ${voice.audio_url ? `<audio controls preload="metadata" src="${voice.audio_url}"></audio>` : ""}
+        <small>${escapeHtml(voice.file_name || t("voiceFallback"))}</small>
+        ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+      </div>
       ${action}
     </div>
+  `;
+}
+
+function renderNotes(task) {
+  const notes = task?.notes || [];
+  document.getElementById("task-note").value = "";
+  document.getElementById("note-list").innerHTML = notes.length
+    ? notes.map(renderNote).join("")
+    : `<p class="empty-note">${t("noNotes")}</p>`;
+}
+
+function renderNote(note) {
+  const meta = [labelAuthUser(note.created_by), note.created_at ? formatDateTime(note.created_at) : ""].filter(Boolean).join(" • ");
+  return `
+    <article class="note-item">
+      <p>${escapeHtml(note.note_text || "")}</p>
+      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+    </article>
   `;
 }
 
@@ -841,6 +899,7 @@ async function saveTask(event) {
     task_date: document.getElementById("task-date").value || null,
     deadline_date: document.getElementById("task-deadline").value || null,
     priority: document.getElementById("task-priority").value,
+    progress_status: document.getElementById("task-progress").value,
     status: document.getElementById("task-date").value
       ? columnFromDate(document.getElementById("task-date").value)
       : document.getElementById("task-column").value,
@@ -857,6 +916,7 @@ async function saveTask(event) {
   }
 
   const taskId = result.data.id;
+  recentLocalEdits.add(taskId);
   try {
     await assertOk(await supabase.from("task_assignees").delete().eq("task_id", taskId));
     const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
@@ -885,6 +945,22 @@ async function sendAssignmentEmails(taskId, assigneeIds) {
   } catch (error) {
     console.warn("Assignment email function is not configured yet.", error);
   }
+}
+
+async function addTaskNote() {
+  const task = getSelectedTask();
+  const note = document.getElementById("task-note").value.trim();
+  if (!task || !note) return;
+
+  await assertOk(await supabase.from("task_notes").insert({
+    task_id: task.id,
+    note_text: note,
+    created_by: session.user.id,
+  }));
+  recentLocalEdits.add(task.id);
+  document.getElementById("task-note").value = "";
+  await loadData();
+  renderAll();
 }
 
 async function deleteSelectedTask() {
@@ -1041,6 +1117,17 @@ function priorityLabel(id = "medium") {
   return lang === "tr" ? priority.labelTr : priority.labelEn;
 }
 
+function progressLabel(id = "ongoing") {
+  const progress = progressStates.find((item) => item.id === id) || progressStates[0];
+  return lang === "tr" ? progress.labelTr : progress.labelEn;
+}
+
+function labelAuthUser(authUserId) {
+  if (!authUserId) return "";
+  const profile = profiles.find((item) => item.auth_user_id === authUserId || item.id === authUserId);
+  return profile?.full_name || "";
+}
+
 function columnFromDate(date) {
   if (!date) return activeColumn !== "all" ? activeColumn : "plan";
   const day = new Date(`${date}T12:00:00`).getDay();
@@ -1083,7 +1170,7 @@ async function requestBrowserNotifications() {
   }
 }
 
-function notifyNewAssignedTasks() {
+function notifyAssignedTaskChanges() {
   if (!currentProfile || !("Notification" in window) || Notification.permission !== "granted") return;
   const key = `workflow-seen-assigned-${currentProfile.id}`;
   const seen = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
@@ -1092,20 +1179,45 @@ function notifyNewAssignedTasks() {
   if (!notificationBaselineReady) {
     assigned.forEach((task) => seen.add(task.id));
     localStorage.setItem(key, JSON.stringify([...seen]));
+    taskFingerprints = new Map(assigned.map((task) => [task.id, taskFingerprint(task)]));
     notificationBaselineReady = true;
     return;
   }
 
-  assigned
-    .filter((task) => !seen.has(task.id) && task.createdBy !== session.user.id)
-    .forEach((task) => {
+  assigned.forEach((task) => {
+    const nextFingerprint = taskFingerprint(task);
+    const previousFingerprint = taskFingerprints.get(task.id);
+    const isNew = !seen.has(task.id);
+    const isChanged = previousFingerprint && previousFingerprint !== nextFingerprint;
+
+    if ((isNew || isChanged) && !recentLocalEdits.has(task.id)) {
       seen.add(task.id);
-      new Notification(t("assignedNotificationTitle"), {
+      new Notification(isNew ? t("assignedNotificationTitle") : t("taskUpdatedNotificationTitle"), {
         body: `${task.title}${task.deadline ? ` • ${t("due")}: ${formatDate(task.deadline)}` : ""}`,
       });
-    });
+    }
+
+    taskFingerprints.set(task.id, nextFingerprint);
+    recentLocalEdits.delete(task.id);
+  });
 
   localStorage.setItem(key, JSON.stringify([...seen]));
+}
+
+function taskFingerprint(task) {
+  return JSON.stringify({
+    title: task.title,
+    desc: task.desc,
+    date: task.date,
+    deadline: task.deadline,
+    priority: task.priority,
+    progress: task.progress,
+    column: task.column,
+    assignees: [...task.assignees].sort(),
+    files: task.files.length,
+    voices: task.voices.length,
+    notes: task.notes.length,
+  });
 }
 
 function groupBy(rows, key) {
@@ -1156,6 +1268,16 @@ function colPhase(column) {
 
 function formatDate(date) {
   return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
+}
+
+function formatDateTime(date) {
+  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
 
 function safeName(name) {

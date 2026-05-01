@@ -22,6 +22,7 @@ create table if not exists public.tasks (
   task_date date,
   deadline_date date,
   priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'urgent')),
+  progress_status text not null default 'ongoing' check (progress_status in ('ongoing', 'completed')),
   import_key text unique,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
@@ -29,11 +30,17 @@ create table if not exists public.tasks (
 
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
+alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
 alter table public.tasks
   drop constraint if exists tasks_priority_check;
 alter table public.tasks
   add constraint tasks_priority_check
   check (priority in ('low', 'medium', 'high', 'urgent'));
+alter table public.tasks
+  drop constraint if exists tasks_progress_status_check;
+alter table public.tasks
+  add constraint tasks_progress_status_check
+  check (progress_status in ('ongoing', 'completed'));
 
 create table if not exists public.task_assignees (
   task_id uuid references public.tasks(id) on delete cascade,
@@ -61,11 +68,20 @@ create table if not exists public.voice_notes (
 
 alter table public.voice_notes add column if not exists file_name text;
 
+create table if not exists public.task_notes (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid references public.tasks(id) on delete cascade,
+  note_text text not null,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.task_assignees enable row level security;
 alter table public.task_files enable row level security;
 alter table public.voice_notes enable row level security;
+alter table public.task_notes enable row level security;
 
 drop policy if exists "profiles read authenticated" on public.profiles;
 create policy "profiles read authenticated" on public.profiles
@@ -117,6 +133,14 @@ create policy "voice notes read authenticated" on public.voice_notes
 
 drop policy if exists "voice notes write authenticated" on public.voice_notes;
 create policy "voice notes write authenticated" on public.voice_notes
+  for all to authenticated using (true) with check (true);
+
+drop policy if exists "task notes read authenticated" on public.task_notes;
+create policy "task notes read authenticated" on public.task_notes
+  for select to authenticated using (true);
+
+drop policy if exists "task notes write authenticated" on public.task_notes;
+create policy "task notes write authenticated" on public.task_notes
   for all to authenticated using (true) with check (true);
 
 insert into storage.buckets (id, name, public)

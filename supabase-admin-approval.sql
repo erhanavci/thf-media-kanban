@@ -3,6 +3,7 @@ alter table public.profiles add column if not exists approval_status text defaul
 alter table public.profiles add column if not exists is_admin boolean default false;
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
+alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
 alter table public.voice_notes add column if not exists file_name text;
 
 notify pgrst, 'reload schema';
@@ -55,6 +56,23 @@ alter table public.tasks
 alter table public.tasks
   add constraint tasks_priority_check
   check (priority in ('low', 'medium', 'high', 'urgent'));
+
+alter table public.tasks
+  drop constraint if exists tasks_progress_status_check;
+
+alter table public.tasks
+  add constraint tasks_progress_status_check
+  check (progress_status in ('ongoing', 'completed'));
+
+create table if not exists public.task_notes (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid references public.tasks(id) on delete cascade,
+  note_text text not null,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+alter table public.task_notes enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -227,9 +245,22 @@ create policy "voice notes read approved" on public.voice_notes
 create policy "voice notes write approved" on public.voice_notes
   for all to authenticated using (public.is_approved()) with check (public.is_approved());
 
+drop policy if exists "task notes read authenticated" on public.task_notes;
+drop policy if exists "task notes write authenticated" on public.task_notes;
+drop policy if exists "task notes read approved" on public.task_notes;
+drop policy if exists "task notes write approved" on public.task_notes;
+
+create policy "task notes read approved" on public.task_notes
+  for select to authenticated using (public.is_approved());
+
+create policy "task notes write approved" on public.task_notes
+  for all to authenticated using (public.is_approved()) with check (public.is_approved());
+
 -- Run this once after replacing the email with your own login email.
  update public.profiles
  set approval_status = 'approved', is_admin = true
  where auth_user_id = (
    select id from auth.users where email = 'erhan.avci@thf.org.tr'
  );
+
+notify pgrst, 'reload schema';

@@ -1,6 +1,7 @@
 alter table public.tasks add column if not exists import_key text;
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
+alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
 create unique index if not exists tasks_import_key_unique on public.tasks(import_key);
 
 insert into public.tasks (title, description, status, task_date, deadline_date, priority, import_key, created_by)

@@ -226,6 +226,10 @@
                 <span data-i18n="priorityLabel">Priority</span>
                 <select id="task-priority"></select>
               </label>
+              <label>
+                <span data-i18n="progressLabel">Status</span>
+                <select id="task-progress"></select>
+              </label>
             </div>
             <input type="hidden" id="task-column" value="plan" />
             <div class="form-grid">
@@ -249,6 +253,15 @@
             </div>
 
             <div class="asset-list" id="asset-list"></div>
+
+            <section class="note-box">
+              <label>
+                <span data-i18n="notesTitle">Notes</span>
+                <textarea id="task-note" rows="3" placeholder="Add a note" data-i18n-placeholder="notePlaceholder"></textarea>
+              </label>
+              <button class="ghost-button" type="button" id="add-note-button" data-i18n="addNoteButton">Add Note</button>
+              <div class="note-list" id="note-list"></div>
+            </section>
 
             <div class="form-actions">
               <button class="danger-button app-hidden" type="button" id="delete-task-button" data-i18n="deleteButton">Delete</button>
