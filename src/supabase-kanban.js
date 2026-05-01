@@ -248,7 +248,7 @@ let profiles = [];
 let tasks = [];
 let selectedTaskId = "";
 let activeColumn = "all";
-let calendarMonth = "2026-03";
+let calendarMonth = currentMonthKey();
 let lang = localStorage.getItem("workflow-language") || "en";
 let pendingFiles = [];
 let pendingVoices = [];
@@ -1008,6 +1008,11 @@ function moveCalendarMonth(delta) {
   const next = new Date(year, month - 1 + delta, 1);
   calendarMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
   renderCalendar();
+}
+
+function currentMonthKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function getSelectedTask() {
