@@ -57,3 +57,14 @@ supabase functions deploy task-assignment-email
 
 The domain behind `erhan.avci@thf.org.tr` must be verified in the email provider. Supabase's Auth SMTP settings send login/confirmation emails only; they do not send custom task assignment emails by themselves.
 
+## Admin approval panel
+
+Admin approval is handled in the app's admin panel. New users are saved with:
+
+```text
+approval_status = pending
+```
+
+An approved admin sees them in the `User Approvals / Kullanıcı Onayları` panel and clicks `Approve / Onayla`.
+
+Admin approval email is optional and not required for the normal access flow.
