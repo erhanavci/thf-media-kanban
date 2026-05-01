@@ -102,6 +102,7 @@ const i18n = {
     loadingLogin: "Signing in...",
     loadingRegister: "Creating account...",
     confirmEmail: "Account created. If email confirmation is enabled in Supabase, confirm your email and then log in.",
+    adminNotified: "Account created. Confirm your email, then wait for admin approval.",
     dbError: "Database could not be read",
     pendingKicker: "EURO 2026 WORKFLOW",
     pendingTitle: "Access pending approval.",
@@ -188,6 +189,7 @@ const i18n = {
     loadingLogin: "Giriş yapılıyor...",
     loadingRegister: "Üyelik oluşturuluyor...",
     confirmEmail: "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.",
+    adminNotified: "Üyelik oluşturuldu. E-postanı onayla; ardından admin onayını bekle.",
     dbError: "Database okunamadı",
     pendingKicker: "EURO 2026 WORKFLOW",
     pendingTitle: "Erişim admin onayı bekliyor.",
@@ -365,7 +367,7 @@ async function register(event) {
       );
   }
 
-  setAuthMessage(data.session ? "" : t("confirmEmail"));
+  setAuthMessage(data.session ? t("adminNotified") : t("confirmEmail"));
 }
 
 async function renderShell() {
@@ -399,6 +401,7 @@ function subscribeDataChanges() {
     .on("postgres_changes", { event: "*", schema: "public", table: "task_assignees" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "task_files" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refreshData)
     .subscribe();
 }
 
