@@ -54,8 +54,11 @@ create table if not exists public.task_files (
   file_url text not null,
   file_name text,
   file_type text,
+  created_by uuid references auth.users(id),
   created_at timestamptz default now()
 );
+
+alter table public.task_files add column if not exists created_by uuid references auth.users(id);
 
 create table if not exists public.voice_notes (
   id uuid primary key default gen_random_uuid(),

@@ -636,6 +636,7 @@ function renderBoard() {
   const active = columns.find((column) => column.id === activeColumn);
   document.getElementById("active-view-title").textContent = active ? colTitle(active) : t("allPipeline");
   const visibleColumns = activeColumn === "all" ? columns : columns.filter((column) => column.id === activeColumn);
+  board.classList.toggle("all-fit", activeColumn === "all");
   board.innerHTML = visibleColumns
     .map((column) => {
       const columnTasks = tasks.filter((task) => task.column === column.id);
@@ -766,13 +767,15 @@ function renderFile(file) {
   const href = file.file_url || "#";
   const localUrl = file.file_url || (file.file instanceof File ? URL.createObjectURL(file.file) : "");
   const name = file.file_name || file.file?.name || t("fileFallback");
+  const author = labelAuthUser(file.created_by);
+  const meta = [file.file_type || file.file?.type || "", author, file.created_at ? formatDateTime(file.created_at) : ""].filter(Boolean).join(" • ");
   const preview = isImageFile(file) && localUrl ? `<img class="asset-thumb" src="${localUrl}" alt="${escapeHtml(name)}" />` : "";
   const action = file.source === "pending"
     ? `<button class="asset-remove" type="button" data-remove-pending-file="${file.pendingIndex}">${t("removeAsset")}</button>`
     : `<button class="asset-remove" type="button" data-delete-file="${file.id}">${t("removeAsset")}</button>`;
   return `
     <div class="asset-row">
-      <a class="asset-link" href="${href}" target="_blank" rel="noreferrer">${preview}<span>${escapeHtml(name)}</span><small>${escapeHtml(file.file_type || file.file?.type || "")}</small></a>
+      <a class="asset-link" href="${href}" target="_blank" rel="noreferrer">${preview}<span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ""}</a>
       ${action}
     </div>
   `;
@@ -993,6 +996,7 @@ async function uploadPendingAssets(taskId) {
       file_url: data.publicUrl,
       file_name: file.name,
       file_type: file.type,
+      created_by: session.user.id,
     }));
   }
 

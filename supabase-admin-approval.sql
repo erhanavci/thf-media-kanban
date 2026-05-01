@@ -5,6 +5,7 @@ alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
 alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
 alter table public.voice_notes add column if not exists file_name text;
+alter table public.task_files add column if not exists created_by uuid references auth.users(id);
 
 notify pgrst, 'reload schema';
 

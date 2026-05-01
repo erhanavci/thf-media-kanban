@@ -734,6 +734,44 @@ h1 span {
   scroll-snap-type: x proximity;
 }
 
+.kanban-board.all-fit {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-columns: unset;
+  grid-auto-flow: row;
+  overflow-x: visible;
+}
+
+.kanban-board.all-fit .kanban-column {
+  min-width: 0;
+}
+
+.kanban-board.all-fit .column-heading {
+  min-height: 58px;
+  padding: 10px;
+}
+
+.kanban-board.all-fit .column-heading span {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+.kanban-board.all-fit .task-stack {
+  min-height: 360px;
+  padding: 8px;
+}
+
+.kanban-board.all-fit .task-card {
+  padding: 10px;
+}
+
+.kanban-board.all-fit .task-card-topline {
+  display: grid;
+}
+
+.kanban-board.all-fit .task-card-badges {
+  justify-content: flex-start;
+}
+
 .kanban-column {
   min-height: 520px;
   scroll-snap-align: start;
@@ -1263,6 +1301,10 @@ h1 span {
 
   .kanban-board {
     grid-auto-columns: minmax(250px, 88vw);
+  }
+
+  .kanban-board.all-fit {
+    grid-template-columns: 1fr;
   }
 
   .calendar-weekdays {
