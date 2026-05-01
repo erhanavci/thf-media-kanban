@@ -56,7 +56,6 @@ const i18n = {
     allButton: "All",
     newTaskButton: "+ Task",
     cardDetail: "Card detail",
-    closeModal: "Close",
     titleLabel: "Title",
     taskTitlePlaceholder: "Saturday reels package",
     descriptionLabel: "Description",
@@ -148,7 +147,6 @@ const i18n = {
     allButton: "Tümü",
     newTaskButton: "+ Görev",
     cardDetail: "Kart detayı",
-    closeModal: "Kapat",
     titleLabel: "Başlık",
     taskTitlePlaceholder: "Cumartesi reels paketi",
     descriptionLabel: "Açıklama",
@@ -266,7 +264,6 @@ const taskForm = document.getElementById("task-form");
 const userForm = document.getElementById("user-form");
 const recordButton = document.getElementById("record-button");
 const voiceStatus = document.getElementById("voice-status");
-const taskModal = document.getElementById("task-modal");
 
 boot();
 
@@ -307,7 +304,6 @@ function wireEvents() {
     pendingFiles = [];
     pendingVoices = [];
     renderEditor();
-    openTaskModal();
     document.getElementById("task-title").focus();
   });
   document.getElementById("clear-button").addEventListener("click", () => {
@@ -318,11 +314,6 @@ function wireEvents() {
     renderEditor();
   });
   document.getElementById("delete-task-button").addEventListener("click", deleteSelectedTask);
-  document.getElementById("close-task-modal").addEventListener("click", closeTaskModal);
-  document.getElementById("task-modal-backdrop").addEventListener("click", closeTaskModal);
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !taskModal.classList.contains("app-hidden")) closeTaskModal();
-  });
   document.getElementById("calendar-prev").addEventListener("click", () => moveCalendarMonth(-1));
   document.getElementById("calendar-next").addEventListener("click", () => moveCalendarMonth(1));
   document.getElementById("task-files").addEventListener("change", (event) => {
@@ -352,8 +343,8 @@ function wireEvents() {
     selectedTaskId = button.dataset.calendarTask;
     pendingFiles = [];
     pendingVoices = [];
-    renderEditor();
-    openTaskModal();
+    renderAll();
+    document.getElementById("editor-title").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
@@ -380,7 +371,6 @@ async function logout() {
   selectedTaskId = "";
   pendingFiles = [];
   pendingVoices = [];
-  closeTaskModal();
   if (dataChannel) {
     supabase.removeChannel(dataChannel);
     dataChannel = null;
@@ -545,7 +535,7 @@ function renderAll() {
   renderUsers();
   renderBoard();
   renderCalendar();
-  if (!taskModal.classList.contains("app-hidden")) renderEditor();
+  renderEditor();
   renderAdminPanel();
 }
 
@@ -697,16 +687,6 @@ function renderEditor() {
   renderAssets(task);
 }
 
-function openTaskModal() {
-  taskModal.classList.remove("app-hidden");
-  document.body.classList.add("modal-open");
-}
-
-function closeTaskModal() {
-  taskModal.classList.add("app-hidden");
-  document.body.classList.remove("modal-open");
-}
-
 function renderAssets(task) {
   const files = [
     ...(task?.files || []).map((file) => ({ ...file, source: "saved" })),
@@ -768,8 +748,7 @@ function handleBoardClick(event) {
     selectedTaskId = card.dataset.task;
     pendingFiles = [];
     pendingVoices = [];
-    renderEditor();
-    openTaskModal();
+    renderAll();
   }
 }
 
@@ -781,8 +760,7 @@ function handleBoardKeydown(event) {
   selectedTaskId = card.dataset.task;
   pendingFiles = [];
   pendingVoices = [];
-  renderEditor();
-  openTaskModal();
+  renderAll();
 }
 
 async function handleAssetAction(event) {
@@ -874,7 +852,6 @@ async function saveTask(event) {
   document.getElementById("task-files").value = "";
   await loadData();
   renderAll();
-  closeTaskModal();
 }
 
 async function sendAssignmentEmails(taskId, assigneeIds) {
@@ -903,7 +880,6 @@ async function deleteSelectedTask() {
   taskForm.reset();
   await loadData();
   renderAll();
-  closeTaskModal();
 }
 
 async function uploadPendingAssets(taskId) {
@@ -929,12 +905,12 @@ async function uploadPendingAssets(taskId) {
     });
     if (error) throw error;
     const { data } = supabase.storage.from("task-assets").getPublicUrl(path);
-    const voicePayload = {
+    await assertOk(await supabase.from("voice_notes").insert({
       task_id: taskId,
       audio_url: data.publicUrl,
+      file_name: voice.name,
       created_by: session.user.id,
-    };
-    await assertOk(await supabase.from("voice_notes").insert(voicePayload));
+    }));
   }
 }
 

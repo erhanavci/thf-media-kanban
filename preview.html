@@ -162,74 +162,7 @@
             <div class="kanban-board" id="kanban-board" aria-live="polite"></div>
           </div>
 
-          <aside class="side-panel" aria-label="Görev ve kullanıcı paneli">
-            <section class="editor-card">
-              <div class="panel-heading">
-                <p class="toolbar-label" data-i18n="cardDetail">Card detail</p>
-                <h2 id="editor-title">Yeni Görev</h2>
-              </div>
-
-              <form id="task-form" class="task-form">
-                <input type="hidden" id="task-id" />
-
-                <label>
-                  <span data-i18n="titleLabel">Title</span>
-                  <input id="task-title" type="text" placeholder="Saturday reels package" data-i18n-placeholder="taskTitlePlaceholder" required />
-                </label>
-
-                <label>
-                  <span data-i18n="descriptionLabel">Description</span>
-                  <textarea id="task-desc" rows="4" placeholder="Short note, content target or delivery criteria" data-i18n-placeholder="taskDescPlaceholder"></textarea>
-                </label>
-
-                <div class="form-grid">
-                  <label>
-                    <span data-i18n="dateLabel">Date</span>
-                    <input id="task-date" type="date" />
-                  </label>
-                  <label>
-                    <span data-i18n="deadlineLabel">Deadline</span>
-                    <input id="task-deadline" type="date" />
-                  </label>
-                </div>
-
-                <div class="form-grid">
-                  <label>
-                    <span data-i18n="priorityLabel">Priority</span>
-                    <select id="task-priority"></select>
-                  </label>
-                </div>
-                <input type="hidden" id="task-column" value="plan" />
-                <div class="form-grid">
-                  <label class="assignee-field">
-                    <span data-i18n="assigneesLabel">Assignees</span>
-                    <div class="assignee-checklist" id="assignee-list"></div>
-                  </label>
-                </div>
-
-                <label class="file-drop">
-                  <span data-i18n="uploadFile">Upload file</span>
-                  <input id="task-files" type="file" multiple />
-                </label>
-
-                <div class="voice-box">
-                  <div>
-                    <strong data-i18n="voiceNote">Voice note</strong>
-                    <span id="voice-status" data-i18n="voiceReady">Ready</span>
-                  </div>
-                  <button class="ghost-button" type="button" id="record-button" data-i18n="recordStart">Start Recording</button>
-                </div>
-
-                <div class="asset-list" id="asset-list"></div>
-
-                <div class="form-actions">
-                  <button class="danger-button app-hidden" type="button" id="delete-task-button" data-i18n="deleteButton">Delete</button>
-                  <button class="ghost-button" type="button" id="clear-button" data-i18n="clearButton">Clear</button>
-                  <button class="primary-button" type="submit" data-i18n="saveButton">Save</button>
-                </div>
-              </form>
-            </section>
-
+          <aside class="side-panel" aria-label="Kullanıcı paneli">
             <section class="editor-card compact-card">
               <div class="panel-heading">
                 <p class="toolbar-label" data-i18n="teamLabel">Team</p>
@@ -250,6 +183,79 @@
               <div class="approval-list" id="approval-list"></div>
             </section>
           </aside>
+        </section>
+      </section>
+
+      <section class="task-modal app-hidden" id="task-modal" aria-modal="true" role="dialog" aria-labelledby="editor-title">
+        <div class="task-modal-backdrop" id="task-modal-backdrop"></div>
+        <section class="editor-card task-modal-card">
+          <div class="panel-heading">
+            <div>
+              <p class="toolbar-label" data-i18n="cardDetail">Card detail</p>
+              <h2 id="editor-title">Yeni Görev</h2>
+            </div>
+            <button class="ghost-button icon-button" type="button" id="close-task-modal" aria-label="Close">×</button>
+          </div>
+
+          <form id="task-form" class="task-form">
+            <input type="hidden" id="task-id" />
+
+            <label>
+              <span data-i18n="titleLabel">Title</span>
+              <input id="task-title" type="text" placeholder="Saturday reels package" data-i18n-placeholder="taskTitlePlaceholder" required />
+            </label>
+
+            <label>
+              <span data-i18n="descriptionLabel">Description</span>
+              <textarea id="task-desc" rows="4" placeholder="Short note, content target or delivery criteria" data-i18n-placeholder="taskDescPlaceholder"></textarea>
+            </label>
+
+            <div class="form-grid">
+              <label>
+                <span data-i18n="dateLabel">Date</span>
+                <input id="task-date" type="date" />
+              </label>
+              <label>
+                <span data-i18n="deadlineLabel">Deadline</span>
+                <input id="task-deadline" type="date" />
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span data-i18n="priorityLabel">Priority</span>
+                <select id="task-priority"></select>
+              </label>
+            </div>
+            <input type="hidden" id="task-column" value="plan" />
+            <div class="form-grid">
+              <label class="assignee-field">
+                <span data-i18n="assigneesLabel">Assignees</span>
+                <div class="assignee-checklist" id="assignee-list"></div>
+              </label>
+            </div>
+
+            <label class="file-drop">
+              <span data-i18n="uploadFile">Upload file</span>
+              <input id="task-files" type="file" multiple />
+            </label>
+
+            <div class="voice-box">
+              <div>
+                <strong data-i18n="voiceNote">Voice note</strong>
+                <span id="voice-status" data-i18n="voiceReady">Ready</span>
+              </div>
+              <button class="ghost-button" type="button" id="record-button" data-i18n="recordStart">Start Recording</button>
+            </div>
+
+            <div class="asset-list" id="asset-list"></div>
+
+            <div class="form-actions">
+              <button class="danger-button app-hidden" type="button" id="delete-task-button" data-i18n="deleteButton">Delete</button>
+              <button class="ghost-button" type="button" id="clear-button" data-i18n="clearButton">Clear</button>
+              <button class="primary-button" type="submit" data-i18n="saveButton">Save</button>
+            </div>
+          </form>
         </section>
       </section>
     </main>

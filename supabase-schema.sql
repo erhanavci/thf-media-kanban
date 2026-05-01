@@ -59,6 +59,8 @@ create table if not exists public.voice_notes (
   created_at timestamptz default now()
 );
 
+alter table public.voice_notes add column if not exists file_name text;
+
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.task_assignees enable row level security;
@@ -88,6 +90,10 @@ create policy "tasks insert authenticated" on public.tasks
 drop policy if exists "tasks update authenticated" on public.tasks;
 create policy "tasks update authenticated" on public.tasks
   for update to authenticated using (true) with check (true);
+
+drop policy if exists "tasks delete authenticated" on public.tasks;
+create policy "tasks delete authenticated" on public.tasks
+  for delete to authenticated using (true);
 
 drop policy if exists "task assignees read authenticated" on public.task_assignees;
 create policy "task assignees read authenticated" on public.task_assignees

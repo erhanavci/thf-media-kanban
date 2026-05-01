@@ -3,6 +3,9 @@ alter table public.profiles add column if not exists approval_status text defaul
 alter table public.profiles add column if not exists is_admin boolean default false;
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
+alter table public.voice_notes add column if not exists file_name text;
+
+notify pgrst, 'reload schema';
 
 do $$
 begin
