@@ -82,6 +82,69 @@ as $$
   );
 $$;
 
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (
+    id,
+    auth_user_id,
+    full_name,
+    role,
+    approval_status,
+    is_admin
+  )
+  values (
+    new.id,
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', new.email, 'New user'),
+    coalesce(new.raw_user_meta_data->>'role', 'Team'),
+    'pending',
+    false
+  )
+  on conflict (id) do update set
+    auth_user_id = coalesce(public.profiles.auth_user_id, excluded.auth_user_id),
+    full_name = coalesce(nullif(public.profiles.full_name, ''), excluded.full_name),
+    role = coalesce(nullif(public.profiles.role, ''), excluded.role),
+    approval_status = coalesce(public.profiles.approval_status, 'pending'),
+    is_admin = coalesce(public.profiles.is_admin, false);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_auth_user();
+
+insert into public.profiles (
+  id,
+  auth_user_id,
+  full_name,
+  role,
+  approval_status,
+  is_admin
+)
+select
+  u.id,
+  u.id,
+  coalesce(u.raw_user_meta_data->>'full_name', u.email, 'New user'),
+  coalesce(u.raw_user_meta_data->>'role', 'Team'),
+  case
+    when u.email = 'erhan.avci@thf.org.tr' then 'approved'
+    else 'pending'
+  end,
+  u.email = 'erhan.avci@thf.org.tr'
+from auth.users u
+on conflict (id) do update set
+  auth_user_id = coalesce(public.profiles.auth_user_id, excluded.auth_user_id),
+  full_name = coalesce(nullif(public.profiles.full_name, ''), excluded.full_name),
+  role = coalesce(nullif(public.profiles.role, ''), excluded.role);
+
 drop policy if exists "profiles read authenticated" on public.profiles;
 drop policy if exists "profiles insert authenticated" on public.profiles;
 drop policy if exists "profiles update authenticated" on public.profiles;
