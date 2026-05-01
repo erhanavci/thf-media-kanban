@@ -10,16 +10,30 @@ create table if not exists public.profiles (
   created_at timestamptz default now()
 );
 
+alter table public.profiles add column if not exists auth_user_id uuid unique references auth.users(id) on delete cascade;
+alter table public.profiles add column if not exists approval_status text default 'pending';
+alter table public.profiles add column if not exists is_admin boolean default false;
+
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
   status text not null default 'plan',
   task_date date,
+  deadline_date date,
+  priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'urgent')),
   import_key text unique,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
 );
+
+alter table public.tasks add column if not exists deadline_date date;
+alter table public.tasks add column if not exists priority text not null default 'medium';
+alter table public.tasks
+  drop constraint if exists tasks_priority_check;
+alter table public.tasks
+  add constraint tasks_priority_check
+  check (priority in ('low', 'medium', 'high', 'urgent'));
 
 create table if not exists public.task_assignees (
   task_id uuid references public.tasks(id) on delete cascade,

@@ -17,6 +17,13 @@ const columns = [
   { id: "analysis", dayTr: "Pazar", dayEn: "Sunday", titleTr: "Analiz & Optimizasyon", titleEn: "Analysis & Optimization", phaseTr: "Analiz Et", phaseEn: "Analyze", tone: "tone-green" },
 ];
 
+const priorities = [
+  { id: "low", labelTr: "Az", labelEn: "Low" },
+  { id: "medium", labelTr: "Orta", labelEn: "Medium" },
+  { id: "high", labelTr: "Yüksek", labelEn: "High" },
+  { id: "urgent", labelTr: "Acil", labelEn: "Urgent" },
+];
+
 const i18n = {
   en: {
     authKicker: "THF Media Team • Secure Operations Hub",
@@ -54,6 +61,8 @@ const i18n = {
     descriptionLabel: "Description",
     taskDescPlaceholder: "Short note, content target or delivery criteria",
     dateLabel: "Date",
+    deadlineLabel: "Deadline",
+    priorityLabel: "Priority",
     columnLabel: "Column",
     assigneesLabel: "Assignees",
     uploadFile: "Upload file",
@@ -77,6 +86,10 @@ const i18n = {
     undated: "Undated",
     files: "files",
     voice: "voice",
+    due: "Due",
+    browserNotifications: "Browser alerts enabled",
+    browserNotificationsBlocked: "Browser alerts blocked",
+    assignedNotificationTitle: "New task assigned",
     newTask: "New Task",
     editTask: "Edit Task",
     filesTitle: "Files",
@@ -134,6 +147,8 @@ const i18n = {
     descriptionLabel: "Açıklama",
     taskDescPlaceholder: "Kısa not, içerik hedefi veya teslim kriteri",
     dateLabel: "Tarih",
+    deadlineLabel: "Deadline",
+    priorityLabel: "Öncelik",
     columnLabel: "Kolon",
     assigneesLabel: "Kullanıcılar",
     uploadFile: "Dosya yükle",
@@ -157,6 +172,10 @@ const i18n = {
     undated: "Tarihsiz",
     files: "dosya",
     voice: "ses",
+    due: "Deadline",
+    browserNotifications: "Browser bildirimleri açık",
+    browserNotificationsBlocked: "Browser bildirimleri kapalı",
+    assignedNotificationTitle: "Yeni görev atandı",
     newTask: "Yeni Görev",
     editTask: "Görevi Düzenle",
     filesTitle: "Dosyalar",
@@ -223,6 +242,8 @@ let pendingFiles = [];
 let pendingVoices = [];
 let recorder = null;
 let recordedChunks = [];
+let notificationBaselineReady = false;
+let dataChannel = null;
 
 const authScreen = document.getElementById("auth-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -361,10 +382,29 @@ async function renderShell() {
     applyI18n();
     return;
   }
+  requestBrowserNotifications();
   await seedImportedTasks();
   await loadData();
+  subscribeDataChanges();
   document.getElementById("current-user-label").textContent =
     `${currentProfile?.full_name || session.user.email} • ${currentProfile?.role || t("teamFallback")}`;
+  renderAll();
+}
+
+function subscribeDataChanges() {
+  if (dataChannel) return;
+  dataChannel = supabase
+    .channel("workflow-data")
+    .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "task_assignees" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "task_files" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, refreshData)
+    .subscribe();
+}
+
+async function refreshData() {
+  if (!session || currentProfile?.approval_status !== "approved") return;
+  await loadData();
   renderAll();
 }
 
@@ -400,6 +440,8 @@ async function seedImportedTasks() {
     description: `${title}\nKaynak: EHF Women's Euro 2026.xlsx / ${sheet}`,
     status: column,
     task_date: date,
+    deadline_date: date,
+    priority: "medium",
     import_key: `${date}|${title}`,
     created_by: session.user.id,
   }));
@@ -430,10 +472,14 @@ async function loadData() {
     title: task.title,
     desc: task.description || "",
     date: task.task_date || "",
+    deadline: task.deadline_date || "",
+    priority: task.priority || "medium",
+    createdBy: task.created_by || "",
     assignees: (assigneesByTask[task.id] || []).map((row) => row.user_id),
     files: filesByTask[task.id] || [],
     voices: voicesByTask[task.id] || [],
   }));
+  notifyNewAssignedTasks();
 }
 
 function renderAll() {
@@ -449,6 +495,9 @@ function renderAll() {
 function renderSelectors() {
   document.getElementById("task-column").innerHTML = columns
     .map((column) => `<option value="${column.id}">${colDay(column)} - ${colTitle(column)}</option>`)
+    .join("");
+  document.getElementById("task-priority").innerHTML = priorities
+    .map((priority) => `<option value="${priority.id}">${priorityLabel(priority.id)}</option>`)
     .join("");
   document.getElementById("task-user").innerHTML = profiles
     .map((profile) => `<option value="${profile.id}">${escapeHtml(profile.full_name)} / ${escapeHtml(profile.role || t("teamFallback"))}</option>`)
@@ -511,15 +560,30 @@ function renderBoard() {
 
 function renderTaskCard(task) {
   const selected = task.id === selectedTaskId ? "selected" : "";
+  const thumbs = task.files.filter((file) => isImageFile(file)).slice(0, 3);
+  const firstVoice = task.voices.find((voice) => voice.audio_url);
   return `
-    <button class="task-card ${selected}" type="button" draggable="true" data-task="${task.id}">
-      <strong>${escapeHtml(task.title)}</strong>
+    <div class="task-card priority-${escapeHtml(task.priority)} ${selected}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
+      <div class="task-card-topline">
+        <strong>${escapeHtml(task.title)}</strong>
+        <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
+      </div>
       <span>${escapeHtml(task.desc || t("noDescription"))}</span>
+      ${
+        thumbs.length
+          ? `<div class="task-thumbnails">${thumbs.map((file) => `<img src="${file.file_url}" alt="${escapeHtml(file.file_name || t("fileFallback"))}" />`).join("")}</div>`
+          : ""
+      }
+      ${firstVoice ? `<audio class="task-audio-preview" controls src="${firstVoice.audio_url}"></audio>` : ""}
       <div class="task-card-meta">
         <small>${escapeHtml(labelAssignees(task.assignees))}</small>
-        <small>${task.date ? formatDate(task.date) : t("undated")} • ${task.files.length} ${t("files")} • ${task.voices.length} ${t("voice")}</small>
+        <small>
+          ${task.date ? formatDate(task.date) : t("undated")}
+          ${task.deadline ? ` • ${t("due")}: ${formatDate(task.deadline)}` : ""}
+          • ${task.files.length} ${t("files")} • ${task.voices.length} ${t("voice")}
+        </small>
       </div>
-    </button>
+    </div>
   `;
 }
 
@@ -542,7 +606,7 @@ function renderCalendar() {
       <div class="calendar-day ${dayTasks.length ? "has-tasks" : ""}">
         <div class="calendar-date">${day}</div>
         <div class="calendar-tasks">
-          ${dayTasks.map((task) => `<button class="calendar-task" type="button" data-calendar-task="${task.id}">${escapeHtml(task.title)}</button>`).join("")}
+          ${dayTasks.map((task) => `<button class="calendar-task priority-${escapeHtml(task.priority)}" type="button" data-calendar-task="${task.id}">${escapeHtml(task.title)}</button>`).join("")}
         </div>
       </div>
     `);
@@ -557,13 +621,15 @@ function renderEditor() {
   document.getElementById("task-title").value = task?.title || "";
   document.getElementById("task-desc").value = task?.desc || "";
   document.getElementById("task-date").value = task?.date || "";
+  document.getElementById("task-deadline").value = task?.deadline || "";
+  document.getElementById("task-priority").value = task?.priority || "medium";
   document.getElementById("task-column").value = task?.column || (activeColumn !== "all" ? activeColumn : "plan");
   setSelectedAssignees(task?.assignees || []);
   renderAssets(task);
 }
 
 function renderAssets(task) {
-  const files = [...(task?.files || []), ...pendingFiles.map((file) => ({ file_name: file.name, file_type: file.type }))];
+  const files = [...(task?.files || []), ...pendingFiles];
   const voices = [...(task?.voices || []), ...pendingVoices.map((voice) => ({ file_name: voice.name }))];
   document.getElementById("asset-list").innerHTML = `
     <div>
@@ -579,7 +645,10 @@ function renderAssets(task) {
 
 function renderFile(file) {
   const href = file.file_url || "#";
-  return `<a class="asset-link" href="${href}" target="_blank" rel="noreferrer"><span>${escapeHtml(file.file_name || t("fileFallback"))}</span><small>${escapeHtml(file.file_type || "")}</small></a>`;
+  const localUrl = file.file_url || (file instanceof File ? URL.createObjectURL(file) : "");
+  const name = file.file_name || file.name || t("fileFallback");
+  const preview = isImageFile(file) && localUrl ? `<img class="asset-thumb" src="${localUrl}" alt="${escapeHtml(name)}" />` : "";
+  return `<a class="asset-link" href="${href}" target="_blank" rel="noreferrer">${preview}<span>${escapeHtml(name)}</span><small>${escapeHtml(file.file_type || file.type || "")}</small></a>`;
 }
 
 function renderVoice(voice) {
@@ -618,10 +687,13 @@ async function handleDrop(event) {
 async function saveTask(event) {
   event.preventDefault();
   const id = document.getElementById("task-id").value;
+  const isNewTask = !id;
   const payload = {
     title: document.getElementById("task-title").value.trim(),
     description: document.getElementById("task-desc").value.trim(),
     task_date: document.getElementById("task-date").value || null,
+    deadline_date: document.getElementById("task-deadline").value || null,
+    priority: document.getElementById("task-priority").value,
     status: document.getElementById("task-column").value,
     created_by: session.user.id,
   };
@@ -639,6 +711,7 @@ async function saveTask(event) {
   await supabase.from("task_assignees").delete().eq("task_id", taskId);
   const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
   if (assignees.length) await supabase.from("task_assignees").insert(assignees);
+  if (isNewTask && assignees.length) await sendAssignmentEmails(taskId, assignees.map((item) => item.user_id));
   await uploadPendingAssets(taskId);
 
   selectedTaskId = taskId;
@@ -647,6 +720,16 @@ async function saveTask(event) {
   document.getElementById("task-files").value = "";
   await loadData();
   renderAll();
+}
+
+async function sendAssignmentEmails(taskId, assigneeIds) {
+  try {
+    await supabase.functions.invoke("task-assignment-email", {
+      body: { taskId, assigneeIds },
+    });
+  } catch (error) {
+    console.warn("Assignment email function is not configured yet.", error);
+  }
 }
 
 async function uploadPendingAssets(taskId) {
@@ -768,6 +851,52 @@ function labelAssignees(ids) {
     .filter(Boolean)
     .map((profile) => profile.full_name)
     .join(", ");
+}
+
+function priorityLabel(id = "medium") {
+  const priority = priorities.find((item) => item.id === id) || priorities[1];
+  return lang === "tr" ? priority.labelTr : priority.labelEn;
+}
+
+function isImageFile(file) {
+  const type = file.file_type || file.type || "";
+  const name = file.file_name || file.name || "";
+  return type.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif)$/i.test(name);
+}
+
+async function requestBrowserNotifications() {
+  if (!("Notification" in window) || Notification.permission !== "default") return;
+  try {
+    const permission = await Notification.requestPermission();
+    console.info(permission === "granted" ? t("browserNotifications") : t("browserNotificationsBlocked"));
+  } catch {
+    console.info(t("browserNotificationsBlocked"));
+  }
+}
+
+function notifyNewAssignedTasks() {
+  if (!currentProfile || !("Notification" in window) || Notification.permission !== "granted") return;
+  const key = `workflow-seen-assigned-${currentProfile.id}`;
+  const seen = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  const assigned = tasks.filter((task) => task.assignees.includes(currentProfile.id));
+
+  if (!notificationBaselineReady) {
+    assigned.forEach((task) => seen.add(task.id));
+    localStorage.setItem(key, JSON.stringify([...seen]));
+    notificationBaselineReady = true;
+    return;
+  }
+
+  assigned
+    .filter((task) => !seen.has(task.id) && task.createdBy !== session.user.id)
+    .forEach((task) => {
+      seen.add(task.id);
+      new Notification(t("assignedNotificationTitle"), {
+        body: `${task.title}${task.deadline ? ` • ${t("due")}: ${formatDate(task.deadline)}` : ""}`,
+      });
+    });
+
+  localStorage.setItem(key, JSON.stringify([...seen]));
 }
 
 function groupBy(rows, key) {

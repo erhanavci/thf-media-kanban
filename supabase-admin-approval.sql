@@ -1,5 +1,43 @@
+alter table public.profiles add column if not exists auth_user_id uuid;
 alter table public.profiles add column if not exists approval_status text default 'pending';
 alter table public.profiles add column if not exists is_admin boolean default false;
+alter table public.tasks add column if not exists deadline_date date;
+alter table public.tasks add column if not exists priority text not null default 'medium';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_auth_user_id_fkey'
+  ) then
+    alter table public.profiles
+      add constraint profiles_auth_user_id_fkey
+      foreign key (auth_user_id)
+      references auth.users(id)
+      on delete cascade;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_indexes
+    where schemaname = 'public'
+      and indexname = 'profiles_auth_user_id_unique'
+  ) then
+    create unique index profiles_auth_user_id_unique
+      on public.profiles(auth_user_id)
+      where auth_user_id is not null;
+  end if;
+end $$;
+
+-- If an older version used profiles.id directly as the auth user id, repair the link.
+update public.profiles p
+set auth_user_id = p.id
+where p.auth_user_id is null
+  and exists (select 1 from auth.users u where u.id = p.id);
 
 alter table public.profiles
   drop constraint if exists profiles_approval_status_check;
@@ -7,6 +45,13 @@ alter table public.profiles
 alter table public.profiles
   add constraint profiles_approval_status_check
   check (approval_status in ('pending', 'approved', 'rejected'));
+
+alter table public.tasks
+  drop constraint if exists tasks_priority_check;
+
+alter table public.tasks
+  add constraint tasks_priority_check
+  check (priority in ('low', 'medium', 'high', 'urgent'));
 
 create or replace function public.is_admin()
 returns boolean
@@ -40,6 +85,9 @@ $$;
 drop policy if exists "profiles read authenticated" on public.profiles;
 drop policy if exists "profiles insert authenticated" on public.profiles;
 drop policy if exists "profiles update authenticated" on public.profiles;
+drop policy if exists "profiles read approved or self" on public.profiles;
+drop policy if exists "profiles insert self or approved team member" on public.profiles;
+drop policy if exists "profiles update admin only" on public.profiles;
 drop policy if exists "profiles insert own" on public.profiles;
 drop policy if exists "profiles update own" on public.profiles;
 
@@ -63,6 +111,9 @@ create policy "profiles update admin only" on public.profiles
 drop policy if exists "tasks read authenticated" on public.tasks;
 drop policy if exists "tasks insert authenticated" on public.tasks;
 drop policy if exists "tasks update authenticated" on public.tasks;
+drop policy if exists "tasks read approved" on public.tasks;
+drop policy if exists "tasks insert approved" on public.tasks;
+drop policy if exists "tasks update approved" on public.tasks;
 
 create policy "tasks read approved" on public.tasks
   for select to authenticated using (public.is_approved());
@@ -75,6 +126,8 @@ create policy "tasks update approved" on public.tasks
 
 drop policy if exists "task assignees read authenticated" on public.task_assignees;
 drop policy if exists "task assignees write authenticated" on public.task_assignees;
+drop policy if exists "task assignees read approved" on public.task_assignees;
+drop policy if exists "task assignees write approved" on public.task_assignees;
 
 create policy "task assignees read approved" on public.task_assignees
   for select to authenticated using (public.is_approved());
@@ -84,6 +137,8 @@ create policy "task assignees write approved" on public.task_assignees
 
 drop policy if exists "task files read authenticated" on public.task_files;
 drop policy if exists "task files write authenticated" on public.task_files;
+drop policy if exists "task files read approved" on public.task_files;
+drop policy if exists "task files write approved" on public.task_files;
 
 create policy "task files read approved" on public.task_files
   for select to authenticated using (public.is_approved());
@@ -93,6 +148,8 @@ create policy "task files write approved" on public.task_files
 
 drop policy if exists "voice notes read authenticated" on public.voice_notes;
 drop policy if exists "voice notes write authenticated" on public.voice_notes;
+drop policy if exists "voice notes read approved" on public.voice_notes;
+drop policy if exists "voice notes write approved" on public.voice_notes;
 
 create policy "voice notes read approved" on public.voice_notes
   for select to authenticated using (public.is_approved());
@@ -101,8 +158,8 @@ create policy "voice notes write approved" on public.voice_notes
   for all to authenticated using (public.is_approved()) with check (public.is_approved());
 
 -- Run this once after replacing the email with your own login email.
--- update public.profiles
--- set approval_status = 'approved', is_admin = true
--- where auth_user_id = (
---   select id from auth.users where email = 'erhan.avci@thf.org.tr'
--- );
+ update public.profiles
+ set approval_status = 'approved', is_admin = true
+ where auth_user_id = (
+   select id from auth.users where email = 'erhan.avci@thf.org.tr'
+ );

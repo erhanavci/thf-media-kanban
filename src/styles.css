@@ -597,6 +597,23 @@ h1 span {
   cursor: pointer;
 }
 
+.calendar-task.priority-low {
+  border-left: 3px solid #38bdf8;
+}
+
+.calendar-task.priority-medium {
+  border-left: 3px solid #facc15;
+}
+
+.calendar-task.priority-high {
+  border-left: 3px solid #fb923c;
+}
+
+.calendar-task.priority-urgent {
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.24);
+}
+
 .calendar-task:hover {
   border-color: rgba(227, 6, 19, 0.7);
   background: rgba(227, 6, 19, 0.28);
@@ -765,9 +782,33 @@ h1 span {
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
+.task-card.priority-low {
+  border-left: 4px solid #38bdf8;
+}
+
+.task-card.priority-medium {
+  border-left: 4px solid #facc15;
+}
+
+.task-card.priority-high {
+  border-left: 4px solid #fb923c;
+}
+
+.task-card.priority-urgent {
+  border-left: 4px solid #ef4444;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.28);
+}
+
 .task-card.selected {
   border-color: rgba(227, 6, 19, 0.75);
   background: rgba(227, 6, 19, 0.18);
+}
+
+.task-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .task-card strong {
@@ -787,6 +828,55 @@ h1 span {
   justify-content: space-between;
   gap: 8px;
   color: rgba(255, 255, 255, 0.58);
+}
+
+.priority-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 7px;
+  color: #07111f;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.priority-pill.priority-low {
+  background: #7dd3fc;
+}
+
+.priority-pill.priority-medium {
+  background: #fde047;
+}
+
+.priority-pill.priority-high {
+  background: #fdba74;
+}
+
+.priority-pill.priority-urgent {
+  background: #f87171;
+  color: #fff;
+}
+
+.task-thumbnails {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.task-thumbnails img,
+.asset-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 7px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.task-audio-preview {
+  width: 100%;
+  height: 34px;
 }
 
 .empty-state {
