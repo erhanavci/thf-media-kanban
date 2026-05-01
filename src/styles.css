@@ -685,7 +685,8 @@ h1 span {
 }
 
 .primary-button,
-.ghost-button {
+.ghost-button,
+.danger-button {
   min-height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
@@ -705,8 +706,15 @@ h1 span {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.danger-button {
+  border-color: rgba(239, 68, 68, 0.62);
+  background: rgba(127, 29, 29, 0.58);
+  color: #fff;
+}
+
 .primary-button:hover,
 .ghost-button:hover,
+.danger-button:hover,
 .column-heading:hover,
 .task-card:hover {
   transform: translateY(-1px);
@@ -730,7 +738,8 @@ h1 span {
 .column-heading {
   display: grid;
   width: 100%;
-  min-height: 112px;
+  min-height: 74px;
+  align-content: center;
   border: 0;
   border-radius: 8px;
   padding: 16px;
@@ -743,7 +752,7 @@ h1 span {
 
 .column-heading span,
 .column-heading em {
-  font-size: 0.72rem;
+  font-size: 0.95rem;
   font-style: normal;
   font-weight: 900;
   letter-spacing: 0.12em;

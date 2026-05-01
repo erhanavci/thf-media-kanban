@@ -63,7 +63,6 @@ const i18n = {
     dateLabel: "Date",
     deadlineLabel: "Deadline",
     priorityLabel: "Priority",
-    columnLabel: "Column",
     assigneesLabel: "Assignees",
     uploadFile: "Upload file",
     voiceNote: "Voice note",
@@ -74,6 +73,8 @@ const i18n = {
     recording: "Recording",
     micNeeded: "Microphone permission required",
     clearButton: "Clear",
+    deleteButton: "Delete",
+    deleteConfirm: "Delete this task?",
     saveButton: "Save",
     teamLabel: "Team",
     defineUser: "Define User",
@@ -150,7 +151,6 @@ const i18n = {
     dateLabel: "Tarih",
     deadlineLabel: "Deadline",
     priorityLabel: "Öncelik",
-    columnLabel: "Kolon",
     assigneesLabel: "Kullanıcılar",
     uploadFile: "Dosya yükle",
     voiceNote: "Sesli not",
@@ -161,6 +161,8 @@ const i18n = {
     recording: "Kayıt alınıyor",
     micNeeded: "Mikrofon izni gerekli",
     clearButton: "Temizle",
+    deleteButton: "Sil",
+    deleteConfirm: "Bu görev silinsin mi?",
     saveButton: "Kaydet",
     teamLabel: "Ekip",
     defineUser: "Kullanıcı Tanımla",
@@ -305,11 +307,17 @@ function wireEvents() {
     taskForm.reset();
     renderEditor();
   });
+  document.getElementById("delete-task-button").addEventListener("click", deleteSelectedTask);
   document.getElementById("calendar-prev").addEventListener("click", () => moveCalendarMonth(-1));
   document.getElementById("calendar-next").addEventListener("click", () => moveCalendarMonth(1));
   document.getElementById("task-files").addEventListener("change", (event) => {
     pendingFiles = Array.from(event.target.files || []);
     renderAssets(getSelectedTask());
+  });
+  document.getElementById("task-date").addEventListener("change", (event) => {
+    if (!selectedTaskId && activeColumn === "all") {
+      document.getElementById("task-column").value = columnFromDate(event.target.value);
+    }
   });
   taskForm.addEventListener("submit", saveTask);
   userForm.addEventListener("submit", addProfile);
@@ -496,9 +504,6 @@ function renderAll() {
 }
 
 function renderSelectors() {
-  document.getElementById("task-column").innerHTML = columns
-    .map((column) => `<option value="${column.id}">${colDay(column)} - ${colTitle(column)}</option>`)
-    .join("");
   document.getElementById("task-priority").innerHTML = priorities
     .map((priority) => `<option value="${priority.id}">${priorityLabel(priority.id)}</option>`)
     .join("");
@@ -549,8 +554,6 @@ function renderBoard() {
         <section class="kanban-column" data-column="${column.id}">
           <button class="column-heading ${column.tone}" type="button" data-filter="${column.id}">
             <span>${colDay(column)}</span>
-            <strong>${colTitle(column)}</strong>
-            <em>${colPhase(column)}</em>
           </button>
           <div class="task-stack" data-drop-column="${column.id}">
             ${columnTasks.length ? columnTasks.map(renderTaskCard).join("") : `<div class="empty-state">${t("noTasks")}</div>`}
@@ -619,6 +622,7 @@ function renderCalendar() {
 
 function renderEditor() {
   const task = getSelectedTask();
+  const defaultColumn = activeColumn !== "all" ? activeColumn : columnFromDate(task?.date || document.getElementById("task-date").value);
   document.getElementById("editor-title").textContent = task ? t("editTask") : t("newTask");
   document.getElementById("task-id").value = task?.id || "";
   document.getElementById("task-title").value = task?.title || "";
@@ -626,14 +630,15 @@ function renderEditor() {
   document.getElementById("task-date").value = task?.date || "";
   document.getElementById("task-deadline").value = task?.deadline || "";
   document.getElementById("task-priority").value = task?.priority || "medium";
-  document.getElementById("task-column").value = task?.column || (activeColumn !== "all" ? activeColumn : "plan");
+  document.getElementById("task-column").value = task?.column || defaultColumn;
+  document.getElementById("delete-task-button").classList.toggle("app-hidden", !task);
   setSelectedAssignees(task?.assignees || []);
   renderAssets(task);
 }
 
 function renderAssets(task) {
   const files = [...(task?.files || []), ...pendingFiles];
-  const voices = [...(task?.voices || []), ...pendingVoices.map((voice) => ({ file_name: voice.name }))];
+  const voices = [...(task?.voices || []), ...pendingVoices.map((voice) => ({ file_name: voice.name, audio_url: voice.url }))];
   document.getElementById("asset-list").innerHTML = `
     <div>
       <strong>${t("filesTitle")}</strong>
@@ -697,7 +702,7 @@ async function saveTask(event) {
     task_date: document.getElementById("task-date").value || null,
     deadline_date: document.getElementById("task-deadline").value || null,
     priority: document.getElementById("task-priority").value,
-    status: document.getElementById("task-column").value,
+    status: document.getElementById("task-column").value || columnFromDate(document.getElementById("task-date").value),
     created_by: session.user.id,
   };
 
@@ -711,11 +716,16 @@ async function saveTask(event) {
   }
 
   const taskId = result.data.id;
-  await supabase.from("task_assignees").delete().eq("task_id", taskId);
-  const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
-  if (assignees.length) await supabase.from("task_assignees").insert(assignees);
-  if (isNewTask && assignees.length) await sendAssignmentEmails(taskId, assignees.map((item) => item.user_id));
-  await uploadPendingAssets(taskId);
+  try {
+    await supabase.from("task_assignees").delete().eq("task_id", taskId);
+    const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
+    if (assignees.length) await supabase.from("task_assignees").insert(assignees);
+    if (isNewTask && assignees.length) await sendAssignmentEmails(taskId, assignees.map((item) => item.user_id));
+    await uploadPendingAssets(taskId);
+  } catch (error) {
+    alert(error.message || String(error));
+    return;
+  }
 
   selectedTaskId = taskId;
   pendingFiles = [];
@@ -733,6 +743,24 @@ async function sendAssignmentEmails(taskId, assigneeIds) {
   } catch (error) {
     console.warn("Assignment email function is not configured yet.", error);
   }
+}
+
+async function deleteSelectedTask() {
+  const task = getSelectedTask();
+  if (!task || !confirm(t("deleteConfirm"))) return;
+
+  const { error } = await supabase.from("tasks").delete().eq("id", task.id);
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  selectedTaskId = "";
+  pendingFiles = [];
+  pendingVoices = [];
+  taskForm.reset();
+  await loadData();
+  renderAll();
 }
 
 async function uploadPendingAssets(taskId) {
@@ -804,6 +832,7 @@ async function toggleRecording() {
         name: `${t("voiceFallback")} ${new Date().toLocaleTimeString(lang === "tr" ? "tr-TR" : "en-US")}`,
         blob: new Blob(recordedChunks, { type: "audio/webm" }),
       });
+      pendingVoices[pendingVoices.length - 1].url = URL.createObjectURL(pendingVoices[pendingVoices.length - 1].blob);
       recordButton.textContent = t("recordStart");
       voiceStatus.textContent = t("recorded");
       renderAssets(getSelectedTask());
@@ -859,6 +888,21 @@ function labelAssignees(ids) {
 function priorityLabel(id = "medium") {
   const priority = priorities.find((item) => item.id === id) || priorities[1];
   return lang === "tr" ? priority.labelTr : priority.labelEn;
+}
+
+function columnFromDate(date) {
+  if (!date) return activeColumn !== "all" ? activeColumn : "plan";
+  const day = new Date(`${date}T12:00:00`).getDay();
+  const map = {
+    1: "plan",
+    2: "start",
+    3: "production",
+    4: "approval",
+    5: "publish",
+    6: "live",
+    0: "analysis",
+  };
+  return map[day] || "plan";
 }
 
 function isImageFile(file) {

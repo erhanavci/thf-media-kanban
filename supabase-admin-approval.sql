@@ -177,6 +177,7 @@ drop policy if exists "tasks update authenticated" on public.tasks;
 drop policy if exists "tasks read approved" on public.tasks;
 drop policy if exists "tasks insert approved" on public.tasks;
 drop policy if exists "tasks update approved" on public.tasks;
+drop policy if exists "tasks delete approved" on public.tasks;
 
 create policy "tasks read approved" on public.tasks
   for select to authenticated using (public.is_approved());
@@ -186,6 +187,9 @@ create policy "tasks insert approved" on public.tasks
 
 create policy "tasks update approved" on public.tasks
   for update to authenticated using (public.is_approved()) with check (public.is_approved());
+
+create policy "tasks delete approved" on public.tasks
+  for delete to authenticated using (public.is_approved());
 
 drop policy if exists "task assignees read authenticated" on public.task_assignees;
 drop policy if exists "task assignees write authenticated" on public.task_assignees;
