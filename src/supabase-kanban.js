@@ -102,6 +102,7 @@ const i18n = {
     teamFallback: "Team",
     loadingLogin: "Signing in...",
     loadingRegister: "Creating account...",
+    loggingOut: "Logging out...",
     confirmEmail: "Account created. If email confirmation is enabled in Supabase, confirm your email and then log in.",
     adminNotified: "Account created. Confirm your email, then wait for admin approval.",
     dbError: "Database could not be read",
@@ -190,6 +191,7 @@ const i18n = {
     teamFallback: "Ekip",
     loadingLogin: "Giriş yapılıyor...",
     loadingRegister: "Üyelik oluşturuluyor...",
+    loggingOut: "Çıkış yapılıyor...",
     confirmEmail: "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.",
     adminNotified: "Üyelik oluşturuldu. E-postanı onayla; ardından admin onayını bekle.",
     dbError: "Database okunamadı",
@@ -287,8 +289,8 @@ function wireEvents() {
   document.getElementById("register-tab").addEventListener("click", () => setAuthMode("register"));
   document.getElementById("login-form").addEventListener("submit", login);
   document.getElementById("register-form").addEventListener("submit", register);
-  document.getElementById("logout-button").addEventListener("click", () => supabase.auth.signOut());
-  document.getElementById("pending-logout-button").addEventListener("click", () => supabase.auth.signOut());
+  document.getElementById("logout-button").addEventListener("click", logout);
+  document.getElementById("pending-logout-button").addEventListener("click", logout);
   document.getElementById("show-all-button").addEventListener("click", () => {
     activeColumn = "all";
     renderBoard();
@@ -315,7 +317,7 @@ function wireEvents() {
     renderAssets(getSelectedTask());
   });
   document.getElementById("task-date").addEventListener("change", (event) => {
-    if (!selectedTaskId && activeColumn === "all") {
+    if (activeColumn === "all") {
       document.getElementById("task-column").value = columnFromDate(event.target.value);
     }
   });
@@ -324,6 +326,7 @@ function wireEvents() {
   document.getElementById("approval-list").addEventListener("click", approveUser);
   recordButton.addEventListener("click", toggleRecording);
   board.addEventListener("click", handleBoardClick);
+  board.addEventListener("keydown", handleBoardKeydown);
   board.addEventListener("dragstart", handleDragStart);
   board.addEventListener("dragover", (event) => {
     if (event.target.closest("[data-drop-column]")) event.preventDefault();
@@ -343,11 +346,32 @@ function wireEvents() {
 async function login(event) {
   event.preventDefault();
   setAuthMessage(t("loadingLogin"));
+  selectedTaskId = "";
+  pendingFiles = [];
+  pendingVoices = [];
   const { error } = await supabase.auth.signInWithPassword({
     email: document.getElementById("login-email").value.trim(),
     password: document.getElementById("login-password").value,
   });
   if (error) setAuthMessage(error.message);
+}
+
+async function logout() {
+  setAuthMessage(t("loggingOut"));
+  await supabase.auth.signOut({ scope: "local" });
+  session = null;
+  currentProfile = null;
+  profiles = [];
+  tasks = [];
+  selectedTaskId = "";
+  pendingFiles = [];
+  pendingVoices = [];
+  if (dataChannel) {
+    supabase.removeChannel(dataChannel);
+    dataChannel = null;
+  }
+  taskForm.reset();
+  renderShell();
 }
 
 async function register(event) {
@@ -382,7 +406,14 @@ async function renderShell() {
   authScreen.classList.toggle("app-hidden", Boolean(session));
   pendingScreen.classList.add("app-hidden");
   appScreen.classList.toggle("app-hidden", !session);
-  if (!session) return;
+  if (!session) {
+    currentProfile = null;
+    profiles = [];
+    tasks = [];
+    selectedTaskId = "";
+    setAuthMessage("");
+    return;
+  }
 
   await ensureProfile();
   if (currentProfile?.approval_status !== "approved") {
@@ -664,6 +695,7 @@ function renderVoice(voice) {
 }
 
 function handleBoardClick(event) {
+  if (event.target.closest("audio, a, img, input, select, textarea, button:not([data-filter])")) return;
   const heading = event.target.closest("[data-filter]");
   const card = event.target.closest("[data-task]");
   if (heading) {
@@ -676,6 +708,17 @@ function handleBoardClick(event) {
     pendingVoices = [];
     renderAll();
   }
+}
+
+function handleBoardKeydown(event) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest("[data-task]");
+  if (!card) return;
+  event.preventDefault();
+  selectedTaskId = card.dataset.task;
+  pendingFiles = [];
+  pendingVoices = [];
+  renderAll();
 }
 
 function handleDragStart(event) {
@@ -702,7 +745,9 @@ async function saveTask(event) {
     task_date: document.getElementById("task-date").value || null,
     deadline_date: document.getElementById("task-deadline").value || null,
     priority: document.getElementById("task-priority").value,
-    status: document.getElementById("task-column").value || columnFromDate(document.getElementById("task-date").value),
+    status: document.getElementById("task-date").value
+      ? columnFromDate(document.getElementById("task-date").value)
+      : document.getElementById("task-column").value,
     created_by: session.user.id,
   };
 
@@ -717,9 +762,9 @@ async function saveTask(event) {
 
   const taskId = result.data.id;
   try {
-    await supabase.from("task_assignees").delete().eq("task_id", taskId);
+    await assertOk(await supabase.from("task_assignees").delete().eq("task_id", taskId));
     const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
-    if (assignees.length) await supabase.from("task_assignees").insert(assignees);
+    if (assignees.length) await assertOk(await supabase.from("task_assignees").insert(assignees));
     if (isNewTask && assignees.length) await sendAssignmentEmails(taskId, assignees.map((item) => item.user_id));
     await uploadPendingAssets(taskId);
   } catch (error) {
@@ -769,12 +814,12 @@ async function uploadPendingAssets(taskId) {
     const { error } = await supabase.storage.from("task-assets").upload(path, file, { upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from("task-assets").getPublicUrl(path);
-    await supabase.from("task_files").insert({
+    await assertOk(await supabase.from("task_files").insert({
       task_id: taskId,
       file_url: data.publicUrl,
       file_name: file.name,
       file_type: file.type,
-    });
+    }));
   }
 
   for (const voice of pendingVoices) {
@@ -782,12 +827,12 @@ async function uploadPendingAssets(taskId) {
     const { error } = await supabase.storage.from("task-assets").upload(path, voice.blob, { upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from("task-assets").getPublicUrl(path);
-    await supabase.from("voice_notes").insert({
+    await assertOk(await supabase.from("voice_notes").insert({
       task_id: taskId,
       audio_url: data.publicUrl,
       file_name: voice.name,
       created_by: session.user.id,
-    });
+    }));
   }
 }
 
@@ -952,6 +997,11 @@ function groupBy(rows, key) {
     acc[row[key]].push(row);
     return acc;
   }, {});
+}
+
+function assertOk(result) {
+  if (result?.error) throw result.error;
+  return result;
 }
 
 function setAuthMessage(message) {
