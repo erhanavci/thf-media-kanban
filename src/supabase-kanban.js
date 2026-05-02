@@ -408,7 +408,6 @@ function wireEvents() {
   profileButton.addEventListener("click", openProfileModal);
   adminPageButton.addEventListener("click", () => openPanel(adminModal));
   notificationButton.addEventListener("click", () => {
-    markNotificationsRead();
     renderNotifications();
     openPanel(notificationsModal);
   });
@@ -680,6 +679,7 @@ function renderAssigneeChecklist(assignees = []) {
       (profile) => `
         <label class="assignee-option">
           <input type="checkbox" value="${profile.id}" ${selected.has(profile.id) ? "checked" : ""} />
+          ${renderAvatar(profile)}
           <span>
             <strong>${escapeHtml(profile.full_name)}</strong>
             <small>${escapeHtml(profile.role || t("teamFallback"))}</small>
@@ -1234,13 +1234,16 @@ async function saveProfile(event) {
 
 function renderProfileShell() {
   const avatar = document.getElementById("profile-avatar");
-  document.getElementById("profile-initials").textContent = initialsFromName(currentProfile?.full_name || session?.user?.email || "");
+  const initials = document.getElementById("profile-initials");
+  initials.textContent = initialsFromName(currentProfile?.full_name || session?.user?.email || "");
   if (currentProfile?.avatar_url) {
     avatar.src = currentProfile.avatar_url;
     avatar.classList.remove("app-hidden");
+    initials.classList.add("app-hidden");
   } else {
     avatar.removeAttribute("src");
     avatar.classList.add("app-hidden");
+    initials.classList.remove("app-hidden");
   }
   document.getElementById("current-user-label").textContent =
     `${currentProfile?.full_name || session?.user?.email || ""} • ${currentProfile?.role || t("teamFallback")}`;

@@ -1125,7 +1125,7 @@ h1 span {
 
 .assignee-option {
   display: grid !important;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   gap: 10px !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1143,6 +1143,11 @@ h1 span {
 .assignee-option span {
   display: grid;
   gap: 2px;
+  min-width: 0;
+}
+
+.assignee-option .mini-avatar {
+  margin-right: 0;
 }
 
 .assignee-option strong {
@@ -1711,6 +1716,7 @@ h1 span {
 }
 
 .avatar-button {
+  position: relative;
   width: 44px;
   height: 44px;
   overflow: hidden;
@@ -1720,10 +1726,17 @@ h1 span {
 }
 
 .avatar-button img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+.avatar-button span {
+  position: relative;
+  z-index: 1;
 }
 
 .panel-modal {
