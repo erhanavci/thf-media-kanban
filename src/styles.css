@@ -724,6 +724,14 @@ h1 span {
   transform: translateY(-1px);
 }
 
+.primary-button:disabled,
+.ghost-button:disabled,
+.danger-button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+  transform: none;
+}
+
 .kanban-board {
   display: grid;
   grid-auto-columns: minmax(260px, 1fr);
@@ -892,6 +900,38 @@ h1 span {
   justify-content: space-between;
   gap: 8px;
   color: rgba(255, 255, 255, 0.58);
+}
+
+.task-avatar-row {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding-top: 2px;
+}
+
+.mini-avatar {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid rgba(7, 17, 31, 0.94);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.78);
+  margin-right: -7px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+}
+
+.mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.avatar-placeholder {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
 }
 
 .priority-pill {
@@ -1683,6 +1723,7 @@ h1 span {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
 .panel-modal {
@@ -1742,6 +1783,13 @@ h1 span {
   gap: 10px;
 }
 
+.notification-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
 .notification-item {
   display: grid;
   gap: 4px;
@@ -1756,9 +1804,20 @@ h1 span {
   cursor: pointer;
 }
 
+.notification-item.read {
+  opacity: 0.55;
+  border-left-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.045);
+}
+
 .notification-item.deadline {
   border-left-color: #e30613;
   background: rgba(227, 6, 19, 0.13);
+}
+
+.notification-item.deadline.read {
+  border-left-color: rgba(227, 6, 19, 0.36);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .notification-item strong {

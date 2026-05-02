@@ -136,6 +136,8 @@ const i18n = {
     notificationsLabel: "Notifications",
     notificationsTitle: "Notifications",
     noNotifications: "No notifications yet.",
+    markRead: "Mark read",
+    notificationDelete: "Delete",
     deadlineTomorrowTitle: "Deadline tomorrow",
     deadlineTomorrowBody: "is due tomorrow.",
     assignedNotice: "Assigned to you",
@@ -250,6 +252,8 @@ const i18n = {
     notificationsLabel: "Bildirimler",
     notificationsTitle: "Bildirimler",
     noNotifications: "Henüz bildirim yok.",
+    markRead: "Okundu",
+    notificationDelete: "Sil",
     deadlineTomorrowTitle: "Deadline yarın",
     deadlineTomorrowBody: "görevinin deadline tarihi yarın.",
     assignedNotice: "Sana atandı",
@@ -334,6 +338,10 @@ async function boot() {
   wireEvents();
   applyI18n();
   await renderShell();
+  setInterval(refreshData, 15000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshData();
+  });
 
   supabase.auth.onAuthStateChange(async (_event, nextSession) => {
     session = nextSession;
@@ -400,12 +408,20 @@ function wireEvents() {
   profileButton.addEventListener("click", openProfileModal);
   adminPageButton.addEventListener("click", () => openPanel(adminModal));
   notificationButton.addEventListener("click", () => {
+    markNotificationsRead();
     renderNotifications();
     openPanel(notificationsModal);
   });
   document.getElementById("notification-list").addEventListener("click", (event) => {
+    const deleteButton = event.target.closest("[data-delete-notification]");
+    if (deleteButton) {
+      deleteNotification(deleteButton.dataset.deleteNotification);
+      renderNotifications();
+      return;
+    }
     const button = event.target.closest("[data-notification-task]");
     if (!button) return;
+    markNotificationRead(button.dataset.notificationId);
     selectedTaskId = button.dataset.notificationTask;
     pendingFiles = [];
     pendingVoices = [];
@@ -725,6 +741,7 @@ function renderTaskCard(task) {
   const completed = task.progress === "completed" ? "completed" : "";
   const thumbs = task.files.filter((file) => isImageFile(file)).slice(0, 3);
   const firstVoice = task.voices.find((voice) => voice.audio_url);
+  const assignees = task.assignees.map(profileById).filter(Boolean);
   return `
     <div class="task-card priority-${escapeHtml(task.priority)} ${completed} ${selected}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
       <div class="task-card-topline">
@@ -741,6 +758,7 @@ function renderTaskCard(task) {
           : ""
       }
       ${firstVoice ? `<audio class="task-audio-preview" controls src="${firstVoice.audio_url}"></audio>` : ""}
+      ${assignees.length ? `<div class="task-avatar-row">${assignees.map(renderAvatar).join("")}</div>` : ""}
       <div class="task-card-meta">
         <small>${escapeHtml(labelAssignees(task.assignees))}</small>
         <small>
@@ -792,7 +810,7 @@ function renderEditor() {
   document.getElementById("task-priority").value = task?.priority || "medium";
   document.getElementById("task-progress").value = task?.progress || "ongoing";
   document.getElementById("task-column").value = task?.column || defaultColumn;
-  document.getElementById("delete-task-button").classList.toggle("app-hidden", !task);
+  document.getElementById("delete-task-button").classList.toggle("app-hidden", !canDeleteTask(task));
   setSelectedAssignees(task?.assignees || []);
   renderAssets(task);
   renderNotes(task);
@@ -838,7 +856,7 @@ function renderFile(file) {
   const preview = isImageFile(file) && localUrl ? `<img class="asset-thumb" src="${localUrl}" alt="${escapeHtml(name)}" />` : "";
   const action = file.source === "pending"
     ? `<button class="asset-remove" type="button" data-remove-pending-file="${file.pendingIndex}">${t("removeAsset")}</button>`
-    : `<button class="asset-remove" type="button" data-delete-file="${file.id}">${t("removeAsset")}</button>`;
+    : canManageOwnItem(file) ? `<button class="asset-remove" type="button" data-delete-file="${file.id}">${t("removeAsset")}</button>` : "";
   return `
     <div class="asset-row">
       <a class="asset-link" href="${href}" target="_blank" rel="noreferrer">${preview}<span>${escapeHtml(name)}</span>${meta ? `<small>${escapeHtml(meta)}</small>` : ""}</a>
@@ -852,7 +870,7 @@ function renderVoice(voice) {
   const meta = [author, voice.created_at ? formatDateTime(voice.created_at) : ""].filter(Boolean).join(" • ");
   const action = voice.source === "pending"
     ? `<button class="asset-remove" type="button" data-remove-pending-voice="${voice.pendingIndex}">${t("removeAsset")}</button>`
-    : `<button class="asset-remove" type="button" data-delete-voice="${voice.id}">${t("removeAsset")}</button>`;
+    : canManageOwnItem(voice) ? `<button class="asset-remove" type="button" data-delete-voice="${voice.id}">${t("removeAsset")}</button>` : "";
   return `
     <div class="asset-row">
       <div class="voice-note">
@@ -875,12 +893,8 @@ function renderNotes(task) {
 
 function renderNote(note) {
   const meta = [labelAuthUser(note.created_by), note.created_at ? formatDateTime(note.created_at) : ""].filter(Boolean).join(" • ");
-  return `
-    <article class="note-item">
-      <div class="note-body">
-        <p>${escapeHtml(note.note_text || "")}</p>
-        ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
-      </div>
+  const actions = canManageOwnItem(note)
+    ? `
       <div class="note-actions">
         <button class="icon-mini-button" type="button" data-edit-note="${note.id}" aria-label="${t("editNote")}">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -893,6 +907,15 @@ function renderNote(note) {
           </svg>
         </button>
       </div>
+    `
+    : "";
+  return `
+    <article class="note-item">
+      <div class="note-body">
+        <p>${escapeHtml(note.note_text || "")}</p>
+        ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+      </div>
+      ${actions}
     </article>
   `;
 }
@@ -969,6 +992,8 @@ async function handleDrop(event) {
 
 async function saveTask(event) {
   event.preventDefault();
+  const submitButton = taskForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
   const id = document.getElementById("task-id").value;
   const isNewTask = !id;
   const previousAssignees = new Set(getSelectedTask()?.assignees || []);
@@ -982,14 +1007,15 @@ async function saveTask(event) {
     status: document.getElementById("task-date").value
       ? columnFromDate(document.getElementById("task-date").value)
       : document.getElementById("task-column").value,
-    created_by: session.user.id,
   };
+  if (isNewTask) payload.created_by = session.user.id;
 
   const result = id
     ? await supabase.from("tasks").update(payload).eq("id", id).select("id").single()
     : await supabase.from("tasks").insert(payload).select("id").single();
 
   if (result.error) {
+    submitButton.disabled = false;
     alert(result.error.message);
     return;
   }
@@ -1001,20 +1027,34 @@ async function saveTask(event) {
     const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
     if (assignees.length) await assertOk(await supabase.from("task_assignees").insert(assignees));
     const newlyAssigned = assignees.map((item) => item.user_id).filter((userId) => isNewTask || !previousAssignees.has(userId));
-    if (newlyAssigned.length) await sendAssignmentEmails(taskId, newlyAssigned);
-    await uploadPendingAssets(taskId);
+    const filesToUpload = pendingFiles;
+    const voicesToUpload = pendingVoices;
+    selectedTaskId = taskId;
+    pendingFiles = [];
+    pendingVoices = [];
+    document.getElementById("task-files").value = "";
+    closeTaskModal();
+    await loadData();
+    renderAll();
+    uploadAssetsAndNotify(taskId, filesToUpload, voicesToUpload, newlyAssigned);
   } catch (error) {
+    submitButton.disabled = false;
     alert(error.message || String(error));
     return;
   }
 
-  selectedTaskId = taskId;
-  pendingFiles = [];
-  pendingVoices = [];
-  document.getElementById("task-files").value = "";
-  await loadData();
-  renderAll();
-  closeTaskModal();
+  submitButton.disabled = false;
+}
+
+async function uploadAssetsAndNotify(taskId, files, voices, newlyAssigned) {
+  try {
+    if (files.length || voices.length) await uploadPendingAssets(taskId, files, voices);
+    if (newlyAssigned.length) await sendAssignmentEmails(taskId, newlyAssigned);
+    await loadData();
+    renderAll();
+  } catch (error) {
+    alert(error.message || String(error));
+  }
 }
 
 async function sendAssignmentEmails(taskId, assigneeIds) {
@@ -1070,6 +1110,7 @@ async function handleNoteAction(event) {
 
 async function deleteSelectedTask() {
   const task = getSelectedTask();
+  if (!canDeleteTask(task)) return;
   if (!task || !confirm(t("deleteConfirm"))) return;
 
   const { error } = await supabase.from("tasks").delete().eq("id", task.id);
@@ -1087,8 +1128,8 @@ async function deleteSelectedTask() {
   closeTaskModal();
 }
 
-async function uploadPendingAssets(taskId) {
-  for (const file of pendingFiles) {
+async function uploadPendingAssets(taskId, files = pendingFiles, voices = pendingVoices) {
+  for (const file of files) {
     const path = `${taskId}/files/${crypto.randomUUID()}-${safeName(file.name)}`;
     const { error } = await supabase.storage.from("task-assets").upload(path, file, { upsert: true });
     if (error) throw error;
@@ -1102,7 +1143,7 @@ async function uploadPendingAssets(taskId) {
     }));
   }
 
-  for (const voice of pendingVoices) {
+  for (const voice of voices) {
     const extension = audioExtension(voice.blob.type);
     const path = `${taskId}/voice/${crypto.randomUUID()}-${safeName(voice.name)}.${extension}`;
     const { error } = await supabase.storage.from("task-assets").upload(path, voice.blob, {
@@ -1207,9 +1248,10 @@ function renderProfileShell() {
 
 function renderNotifications() {
   const notices = currentNotifications();
+  const unread = notices.filter((notice) => !notice.read);
   const count = document.getElementById("notification-count");
-  count.textContent = String(notices.length);
-  count.classList.toggle("app-hidden", notices.length === 0);
+  count.textContent = String(unread.length);
+  count.classList.toggle("app-hidden", unread.length === 0);
   document.getElementById("notification-list").innerHTML = notices.length
     ? notices.map(renderNotification).join("")
     : `<p class="empty-note">${t("noNotifications")}</p>`;
@@ -1221,22 +1263,66 @@ function currentNotifications() {
   return tasks
     .filter((task) => task.assignees.includes(currentProfile.id))
     .flatMap((task) => {
-      const notices = [{ type: "assigned", task, title: t("assignedNotice"), body: task.title }];
+      const notices = [{ id: notificationId("assigned", task), type: "assigned", task, title: t("assignedNotice"), body: task.title }];
       if (task.deadline && daysBetween(today, task.deadline) === 1 && task.progress !== "completed") {
-        notices.unshift({ type: "deadline", task, title: t("deadlineTomorrowTitle"), body: `${task.title} ${t("deadlineTomorrowBody")}` });
+        notices.unshift({ id: notificationId("deadline", task), type: "deadline", task, title: t("deadlineTomorrowTitle"), body: `${task.title} ${t("deadlineTomorrowBody")}` });
       }
       return notices;
-    });
+    })
+    .filter((notice) => !notificationSet("deleted").has(notice.id))
+    .map((notice) => ({ ...notice, read: notificationSet("read").has(notice.id) }));
 }
 
 function renderNotification(notice) {
   return `
-    <button class="notification-item ${notice.type}" type="button" data-notification-task="${notice.task.id}">
-      <strong>${escapeHtml(notice.title)}</strong>
-      <span>${escapeHtml(notice.body)}</span>
-      ${notice.task.deadline ? `<small>${t("due")}: ${formatDate(notice.task.deadline)}</small>` : ""}
-    </button>
+    <div class="notification-row">
+      <button class="notification-item ${notice.type} ${notice.read ? "read" : ""}" type="button" data-notification-task="${notice.task.id}" data-notification-id="${notice.id}">
+        <strong>${escapeHtml(notice.title)}</strong>
+        <span>${escapeHtml(notice.body)}</span>
+        ${notice.task.deadline ? `<small>${t("due")}: ${formatDate(notice.task.deadline)}</small>` : ""}
+      </button>
+      <button class="icon-mini-button danger" type="button" data-delete-notification="${notice.id}" aria-label="${t("notificationDelete")}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path>
+        </svg>
+      </button>
+    </div>
   `;
+}
+
+function notificationId(type, task) {
+  return `${type}-${task.id}-${task.deadline || task.date || "task"}`;
+}
+
+function notificationKey(kind) {
+  return `workflow-notifications-${kind}-${currentProfile?.id || "guest"}`;
+}
+
+function notificationSet(kind) {
+  return new Set(JSON.parse(localStorage.getItem(notificationKey(kind)) || "[]"));
+}
+
+function saveNotificationSet(kind, values) {
+  localStorage.setItem(notificationKey(kind), JSON.stringify([...values]));
+}
+
+function markNotificationRead(id) {
+  const read = notificationSet("read");
+  read.add(id);
+  saveNotificationSet("read", read);
+}
+
+function markNotificationsRead() {
+  const read = notificationSet("read");
+  currentNotifications().forEach((notice) => read.add(notice.id));
+  saveNotificationSet("read", read);
+}
+
+function deleteNotification(id) {
+  const deleted = notificationSet("deleted");
+  deleted.add(id);
+  saveNotificationSet("deleted", deleted);
+  markNotificationRead(id);
 }
 
 async function approveUser(event) {
@@ -1320,10 +1406,37 @@ function setSelectedAssignees(assignees) {
 function labelAssignees(ids) {
   if (!ids.length) return t("unassigned");
   return ids
-    .map((id) => profiles.find((profile) => profile.id === id))
+    .map(profileById)
     .filter(Boolean)
     .map((profile) => profile.full_name)
     .join(", ");
+}
+
+function profileById(id) {
+  return profiles.find((profile) => profile.id === id);
+}
+
+function renderAvatar(profile) {
+  const label = escapeHtml(profile.full_name || t("teamFallback"));
+  if (profile.avatar_url) {
+    return `<span class="mini-avatar" title="${label}"><img src="${profile.avatar_url}" alt="${label}" /></span>`;
+  }
+  return `
+    <span class="mini-avatar avatar-placeholder" title="${label}" aria-label="${label}">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21a8 8 0 0 0-16 0"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+    </span>
+  `;
+}
+
+function canDeleteTask(task) {
+  return Boolean(task && task.createdBy && task.createdBy === session?.user?.id);
+}
+
+function canManageOwnItem(item) {
+  return Boolean(item?.created_by && item.created_by === session?.user?.id);
 }
 
 function priorityLabel(id = "medium") {

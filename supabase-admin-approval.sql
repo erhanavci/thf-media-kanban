@@ -127,6 +127,23 @@ create trigger protect_profile_admin_fields_trigger
 before update on public.profiles
 for each row execute function public.protect_profile_admin_fields();
 
+create or replace function public.preserve_task_creator()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.created_by = old.created_by;
+  return new;
+end;
+$$;
+
+drop trigger if exists preserve_task_creator_trigger on public.tasks;
+create trigger preserve_task_creator_trigger
+before update on public.tasks
+for each row execute function public.preserve_task_creator();
+
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -234,7 +251,7 @@ create policy "tasks update approved" on public.tasks
   for update to authenticated using (public.is_approved()) with check (public.is_approved());
 
 create policy "tasks delete approved" on public.tasks
-  for delete to authenticated using (public.is_approved());
+  for delete to authenticated using (public.is_approved() and created_by = auth.uid());
 
 drop policy if exists "task assignees read authenticated" on public.task_assignees;
 drop policy if exists "task assignees write authenticated" on public.task_assignees;
@@ -251,34 +268,61 @@ drop policy if exists "task files read authenticated" on public.task_files;
 drop policy if exists "task files write authenticated" on public.task_files;
 drop policy if exists "task files read approved" on public.task_files;
 drop policy if exists "task files write approved" on public.task_files;
+drop policy if exists "task files insert approved" on public.task_files;
+drop policy if exists "task files update own" on public.task_files;
+drop policy if exists "task files delete own" on public.task_files;
 
 create policy "task files read approved" on public.task_files
   for select to authenticated using (public.is_approved());
 
-create policy "task files write approved" on public.task_files
-  for all to authenticated using (public.is_approved()) with check (public.is_approved());
+create policy "task files insert approved" on public.task_files
+  for insert to authenticated with check (public.is_approved() and created_by = auth.uid());
+
+create policy "task files update own" on public.task_files
+  for update to authenticated using (public.is_approved() and created_by = auth.uid()) with check (public.is_approved() and created_by = auth.uid());
+
+create policy "task files delete own" on public.task_files
+  for delete to authenticated using (public.is_approved() and created_by = auth.uid());
 
 drop policy if exists "voice notes read authenticated" on public.voice_notes;
 drop policy if exists "voice notes write authenticated" on public.voice_notes;
 drop policy if exists "voice notes read approved" on public.voice_notes;
 drop policy if exists "voice notes write approved" on public.voice_notes;
+drop policy if exists "voice notes insert approved" on public.voice_notes;
+drop policy if exists "voice notes update own" on public.voice_notes;
+drop policy if exists "voice notes delete own" on public.voice_notes;
 
 create policy "voice notes read approved" on public.voice_notes
   for select to authenticated using (public.is_approved());
 
-create policy "voice notes write approved" on public.voice_notes
-  for all to authenticated using (public.is_approved()) with check (public.is_approved());
+create policy "voice notes insert approved" on public.voice_notes
+  for insert to authenticated with check (public.is_approved() and created_by = auth.uid());
+
+create policy "voice notes update own" on public.voice_notes
+  for update to authenticated using (public.is_approved() and created_by = auth.uid()) with check (public.is_approved() and created_by = auth.uid());
+
+create policy "voice notes delete own" on public.voice_notes
+  for delete to authenticated using (public.is_approved() and created_by = auth.uid());
 
 drop policy if exists "task notes read authenticated" on public.task_notes;
 drop policy if exists "task notes write authenticated" on public.task_notes;
 drop policy if exists "task notes read approved" on public.task_notes;
 drop policy if exists "task notes write approved" on public.task_notes;
+drop policy if exists "task notes insert approved" on public.task_notes;
+drop policy if exists "task notes update own" on public.task_notes;
+drop policy if exists "task notes delete own" on public.task_notes;
 
 create policy "task notes read approved" on public.task_notes
   for select to authenticated using (public.is_approved());
 
-create policy "task notes write approved" on public.task_notes
-  for all to authenticated using (public.is_approved()) with check (public.is_approved());
+create policy "task notes insert approved" on public.task_notes
+  for insert to authenticated with check (public.is_approved() and created_by = auth.uid());
+
+create policy "task notes update own" on public.task_notes
+  for update to authenticated using (public.is_approved() and created_by = auth.uid()) with check (public.is_approved() and created_by = auth.uid());
+
+create policy "task notes delete own" on public.task_notes
+  for delete to authenticated using (public.is_approved() and created_by = auth.uid());
 
 -- Run this once after replacing the email with your own login email.
  update public.profiles

@@ -7,12 +7,14 @@ create table if not exists public.profiles (
   role text,
   approval_status text default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
   is_admin boolean default false,
+  avatar_url text,
   created_at timestamptz default now()
 );
 
 alter table public.profiles add column if not exists auth_user_id uuid unique references auth.users(id) on delete cascade;
 alter table public.profiles add column if not exists approval_status text default 'pending';
 alter table public.profiles add column if not exists is_admin boolean default false;
+alter table public.profiles add column if not exists avatar_url text;
 
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
@@ -79,6 +81,60 @@ create table if not exists public.task_notes (
   created_at timestamptz default now()
 );
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where auth_user_id = auth.uid()
+      and is_admin = true
+      and approval_status = 'approved'
+  );
+$$;
+
+create or replace function public.protect_profile_admin_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    new.id = old.id;
+    new.auth_user_id = old.auth_user_id;
+    new.approval_status = old.approval_status;
+    new.is_admin = old.is_admin;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_admin_fields_trigger on public.profiles;
+create trigger protect_profile_admin_fields_trigger
+before update on public.profiles
+for each row execute function public.protect_profile_admin_fields();
+
+create or replace function public.preserve_task_creator()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.created_by = old.created_by;
+  return new;
+end;
+$$;
+
+drop trigger if exists preserve_task_creator_trigger on public.tasks;
+create trigger preserve_task_creator_trigger
+before update on public.tasks
+for each row execute function public.preserve_task_creator();
+
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.task_assignees enable row level security;
@@ -112,7 +168,7 @@ create policy "tasks update authenticated" on public.tasks
 
 drop policy if exists "tasks delete authenticated" on public.tasks;
 create policy "tasks delete authenticated" on public.tasks
-  for delete to authenticated using (true);
+  for delete to authenticated using (auth.uid() = created_by);
 
 drop policy if exists "task assignees read authenticated" on public.task_assignees;
 create policy "task assignees read authenticated" on public.task_assignees
@@ -127,24 +183,45 @@ create policy "task files read authenticated" on public.task_files
   for select to authenticated using (true);
 
 drop policy if exists "task files write authenticated" on public.task_files;
-create policy "task files write authenticated" on public.task_files
-  for all to authenticated using (true) with check (true);
+drop policy if exists "task files insert authenticated" on public.task_files;
+drop policy if exists "task files update own" on public.task_files;
+drop policy if exists "task files delete own" on public.task_files;
+create policy "task files insert authenticated" on public.task_files
+  for insert to authenticated with check (auth.uid() = created_by);
+create policy "task files update own" on public.task_files
+  for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
+create policy "task files delete own" on public.task_files
+  for delete to authenticated using (auth.uid() = created_by);
 
 drop policy if exists "voice notes read authenticated" on public.voice_notes;
 create policy "voice notes read authenticated" on public.voice_notes
   for select to authenticated using (true);
 
 drop policy if exists "voice notes write authenticated" on public.voice_notes;
-create policy "voice notes write authenticated" on public.voice_notes
-  for all to authenticated using (true) with check (true);
+drop policy if exists "voice notes insert authenticated" on public.voice_notes;
+drop policy if exists "voice notes update own" on public.voice_notes;
+drop policy if exists "voice notes delete own" on public.voice_notes;
+create policy "voice notes insert authenticated" on public.voice_notes
+  for insert to authenticated with check (auth.uid() = created_by);
+create policy "voice notes update own" on public.voice_notes
+  for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
+create policy "voice notes delete own" on public.voice_notes
+  for delete to authenticated using (auth.uid() = created_by);
 
 drop policy if exists "task notes read authenticated" on public.task_notes;
 create policy "task notes read authenticated" on public.task_notes
   for select to authenticated using (true);
 
 drop policy if exists "task notes write authenticated" on public.task_notes;
-create policy "task notes write authenticated" on public.task_notes
-  for all to authenticated using (true) with check (true);
+drop policy if exists "task notes insert authenticated" on public.task_notes;
+drop policy if exists "task notes update own" on public.task_notes;
+drop policy if exists "task notes delete own" on public.task_notes;
+create policy "task notes insert authenticated" on public.task_notes
+  for insert to authenticated with check (auth.uid() = created_by);
+create policy "task notes update own" on public.task_notes
+  for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
+create policy "task notes delete own" on public.task_notes
+  for delete to authenticated using (auth.uid() = created_by);
 
 insert into storage.buckets (id, name, public)
 values ('task-assets', 'task-assets', true)
