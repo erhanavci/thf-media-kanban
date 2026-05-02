@@ -649,6 +649,7 @@ h1 span {
 
 .board-panel {
   min-width: 0;
+  overflow: hidden;
   padding: 16px;
 }
 
@@ -825,13 +826,16 @@ h1 span {
 .pipeline-list-rows {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .task-list-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 420px);
   gap: 14px;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.075);
@@ -883,7 +887,22 @@ h1 span {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.task-list-side .priority-pill,
+.task-list-side .progress-pill,
+.task-list-date {
+  white-space: nowrap;
+}
+
+.task-list-side .task-avatar-row {
+  min-width: 0;
+  max-width: 96px;
+  overflow: hidden;
 }
 
 .kanban-column {

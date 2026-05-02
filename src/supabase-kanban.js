@@ -684,7 +684,7 @@ async function loadData() {
     priority: task.priority || "medium",
     progress: task.progress_status || "ongoing",
     createdBy: task.created_by || "",
-    assignees: (assigneesByTask[task.id] || []).map((row) => row.user_id),
+    assignees: defaultAssignees((assigneesByTask[task.id] || []).map((row) => row.user_id)),
     files: filesByTask[task.id] || [],
     voices: voicesByTask[task.id] || [],
     notes: notesByTask[task.id] || [],
@@ -724,7 +724,7 @@ function renderUsers() {
 }
 
 function renderAssigneeChecklist(assignees = []) {
-  const selected = new Set(assignees.length ? assignees : currentProfile ? [currentProfile.id] : []);
+  const selected = new Set(defaultAssignees(assignees));
   document.getElementById("assignee-list").innerHTML = profiles
     .map(
       (profile) => `
@@ -1603,8 +1603,9 @@ function setSelectedAssignees(assignees) {
 }
 
 function labelAssignees(ids) {
-  if (!ids.length) return t("unassigned");
-  return ids
+  const normalizedIds = defaultAssignees(ids);
+  if (!normalizedIds.length) return t("unassigned");
+  return normalizedIds
     .map(profileById)
     .filter(Boolean)
     .map((profile) => profile.full_name)
@@ -1613,6 +1614,20 @@ function labelAssignees(ids) {
 
 function profileById(id) {
   return profiles.find((profile) => profile.id === id);
+}
+
+function defaultAssignees(ids = []) {
+  if (ids.length) return ids;
+  const fallback = profiles.find((profile) => normalizeText(profile.full_name).includes("erhan avci"));
+  return fallback ? [fallback.id] : [];
+}
+
+function normalizeText(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .toLowerCase();
 }
 
 function renderAvatar(profile) {
