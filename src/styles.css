@@ -803,36 +803,22 @@ h1 span {
 .kanban-board.list-view {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 0;
   overflow: visible;
   padding-bottom: 0;
 }
 
-.pipeline-list-group {
+.pipeline-table {
   display: grid;
-  gap: 8px;
-}
-
-.list-heading {
-  min-height: 44px;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.list-heading small {
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: 950;
-}
-
-.pipeline-list-rows {
-  display: grid;
-  gap: 8px;
+  gap: 7px;
+  width: 100%;
   min-width: 0;
 }
 
 .task-list-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 420px);
-  gap: 14px;
+  grid-template-columns: minmax(86px, 0.55fr) minmax(220px, 2.6fr) minmax(150px, 1fr) minmax(110px, 0.75fr) minmax(72px, 0.5fr) minmax(90px, 0.6fr);
+  gap: 10px;
   align-items: center;
   min-width: 0;
   max-width: 100%;
@@ -864,6 +850,23 @@ h1 span {
   border-color: rgba(34, 197, 94, 0.78);
 }
 
+.task-list-day {
+  min-width: 0;
+}
+
+.task-list-day strong {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 9px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.74rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .task-list-main {
   display: grid;
   gap: 4px;
@@ -878,28 +881,37 @@ h1 span {
 }
 
 .task-list-main span,
-.task-list-date {
+.task-list-date,
+.task-list-counts {
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.82rem;
 }
 
-.task-list-side {
+.task-list-status {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
 }
 
-.task-list-side .priority-pill,
-.task-list-side .progress-pill,
-.task-list-date {
+.task-list-status .priority-pill,
+.task-list-status .progress-pill,
+.task-list-date,
+.task-list-counts {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.task-list-side .task-avatar-row {
+.task-list-people {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.task-list-people .task-avatar-row {
   min-width: 0;
   max-width: 96px;
   overflow: hidden;
@@ -1520,14 +1532,12 @@ h1 span {
     flex: 1;
   }
 
-  .task-list-row,
-  .task-list-side {
+  .task-list-row {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
 
-  .task-list-side {
-    flex-wrap: wrap;
+  .task-list-status {
     justify-content: flex-start;
   }
 

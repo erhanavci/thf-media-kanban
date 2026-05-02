@@ -775,7 +775,7 @@ function renderBoard() {
   board.classList.toggle("all-fit", pipelineView === "cards");
   board.classList.toggle("list-view", pipelineView === "list");
   if (pipelineView === "list") {
-    board.innerHTML = columns.map(renderListGroup).join("");
+    board.innerHTML = renderPipelineTable();
     return;
   }
   board.innerHTML = columns
@@ -795,17 +795,15 @@ function renderBoard() {
     .join("");
 }
 
-function renderListGroup(column) {
-  const columnTasks = tasks.filter((task) => task.column === column.id);
+function renderPipelineTable() {
+  const rows = [...tasks].sort((first, second) => {
+    const firstDate = first.date || "9999-12-31";
+    const secondDate = second.date || "9999-12-31";
+    return firstDate.localeCompare(secondDate) || first.title.localeCompare(second.title);
+  });
   return `
-    <section class="pipeline-list-group" data-column="${column.id}">
-      <button class="column-heading list-heading ${column.tone}" type="button" data-filter="${column.id}">
-        <span>${colDay(column)}</span>
-        <small>${columnTasks.length}</small>
-      </button>
-      <div class="pipeline-list-rows" data-drop-column="${column.id}">
-        ${columnTasks.length ? columnTasks.map(renderTaskListRow).join("") : `<div class="empty-state">${t("noTasks")}</div>`}
-      </div>
+    <section class="pipeline-table" aria-label="Pipeline list">
+      ${rows.length ? rows.map(renderTaskListRow).join("") : `<div class="empty-state">${t("noTasks")}</div>`}
     </section>
   `;
 }
@@ -813,19 +811,24 @@ function renderListGroup(column) {
 function renderTaskListRow(task) {
   const completed = task.progress === "completed" ? "completed" : "";
   const assignees = task.assignees.map(profileById).filter(Boolean);
+  const column = columns.find((item) => item.id === task.column);
   return `
     <div class="task-list-row priority-${escapeHtml(task.priority)} ${completed}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
+      <div class="task-list-day">
+        <strong>${column ? colDay(column) : t("allPipeline")}</strong>
+      </div>
       <div class="task-list-main">
         <strong>${escapeHtml(task.title)}</strong>
         <span>${escapeHtml(stripSource(task.desc || t("noDescription")))}</span>
       </div>
-      <div class="task-list-side">
+      <div class="task-list-status">
         <em class="progress-pill progress-${escapeHtml(task.progress)}">${progressLabel(task.progress)}</em>
         <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
-        <span class="task-list-date">${task.date ? formatDate(task.date) : t("undated")}</span>
-        ${assignees.length ? `<div class="task-avatar-row">${assignees.map(renderAvatar).join("")}</div>` : ""}
       </div>
-    </div>
+      <span class="task-list-date">${task.date ? formatDate(task.date) : t("undated")}</span>
+      <div class="task-list-people">${assignees.length ? `<div class="task-avatar-row">${assignees.map(renderAvatar).join("")}</div>` : ""}</div>
+      <span class="task-list-counts">${task.files.length} ${t("files")} / ${task.voices.length} ${t("voice")}</span>
+      </div>
   `;
 }
 
