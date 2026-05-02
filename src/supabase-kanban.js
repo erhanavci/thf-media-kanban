@@ -13,7 +13,6 @@ const columns = [
   { id: "approval", dayTr: "Perşembe", dayEn: "Thursday", titleTr: "Onay & Hazırlık", titleEn: "Approval & Prep", phaseTr: "Hazırla", phaseEn: "Prepare", tone: "tone-violet" },
   { id: "publish", dayTr: "Cuma", dayEn: "Friday", titleTr: "Yayın Başlangıcı", titleEn: "Publishing Start", phaseTr: "Yayınla", phaseEn: "Publish", tone: "tone-rose" },
   { id: "live", dayTr: "Cumartesi", dayEn: "Saturday", titleTr: "Canlı Operasyon", titleEn: "Live Operations", phaseTr: "Canlı Yönet", phaseEn: "Live Desk", tone: "tone-red" },
-  { id: "post", dayTr: "Cumartesi", dayEn: "Saturday", titleTr: "Yayın Paketi", titleEn: "Publishing Package", phaseTr: "Yayınla", phaseEn: "Publish", tone: "tone-steel" },
   { id: "analysis", dayTr: "Pazar", dayEn: "Sunday", titleTr: "Analiz & Optimizasyon", titleEn: "Analysis & Optimization", phaseTr: "Analiz Et", phaseEn: "Analyze", tone: "tone-green" },
 ];
 
@@ -145,6 +144,15 @@ const i18n = {
     deadlineTomorrowTitle: "Deadline tomorrow",
     deadlineTomorrowBody: "is due tomorrow.",
     assignedNotice: "Assigned to you",
+    activityNotice: "Task activity",
+    activityTaskUpdated: "updated the task",
+    activityNoteAdded: "added a note",
+    activityNoteUpdated: "edited a note",
+    activityNoteDeleted: "deleted a note",
+    activityFileAdded: "added a file",
+    activityFileDeleted: "deleted a file",
+    activityVoiceAdded: "added a voice note",
+    activityVoiceDeleted: "deleted a voice note",
     editNote: "Edit",
     deleteNote: "Delete",
     editNotePrompt: "Edit note",
@@ -265,6 +273,15 @@ const i18n = {
     deadlineTomorrowTitle: "Deadline yarın",
     deadlineTomorrowBody: "görevinin deadline tarihi yarın.",
     assignedNotice: "Sana atandı",
+    activityNotice: "Görev aktivitesi",
+    activityTaskUpdated: "görevi güncelledi",
+    activityNoteAdded: "not ekledi",
+    activityNoteUpdated: "notu düzenledi",
+    activityNoteDeleted: "notu sildi",
+    activityFileAdded: "dosya ekledi",
+    activityFileDeleted: "dosyayı sildi",
+    activityVoiceAdded: "sesli not ekledi",
+    activityVoiceDeleted: "sesli notu sildi",
     editNote: "Düzenle",
     deleteNote: "Sil",
     editNotePrompt: "Notu düzenle",
@@ -307,6 +324,7 @@ let session = null;
 let currentProfile = null;
 let profiles = [];
 let tasks = [];
+let activities = [];
 let selectedTaskId = "";
 let activeColumn = "all";
 let calendarMonth = currentMonthKey();
@@ -316,6 +334,7 @@ let pendingVoices = [];
 let recorder = null;
 let recordedChunks = [];
 let notificationBaselineReady = false;
+let activityBaselineReady = false;
 let dataChannel = null;
 let taskFingerprints = new Map();
 let recentLocalEdits = new Set();
@@ -483,10 +502,12 @@ async function logout() {
   currentProfile = null;
   profiles = [];
   tasks = [];
+  activities = [];
   selectedTaskId = "";
   pendingFiles = [];
   pendingVoices = [];
   notificationBaselineReady = false;
+  activityBaselineReady = false;
   taskFingerprints = new Map();
   recentLocalEdits = new Set();
   closeTaskModal();
@@ -535,6 +556,7 @@ async function renderShell() {
     currentProfile = null;
     profiles = [];
     tasks = [];
+    activities = [];
     selectedTaskId = "";
     setAuthMessage("");
     return;
@@ -567,6 +589,7 @@ function subscribeDataChanges() {
     .on("postgres_changes", { event: "*", schema: "public", table: "task_files" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "task_notes" }, refreshData)
+    .on("postgres_changes", { event: "*", schema: "public", table: "task_activity" }, refreshData)
     .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refreshData)
     .subscribe();
 }
@@ -618,13 +641,14 @@ async function seedImportedTasks() {
 }
 
 async function loadData() {
-  const [profileResult, taskResult, assigneeResult, fileResult, voiceResult, noteResult] = await Promise.all([
+  const [profileResult, taskResult, assigneeResult, fileResult, voiceResult, noteResult, activityResult] = await Promise.all([
     supabase.from("profiles").select("*").order("full_name"),
     supabase.from("tasks").select("*").order("task_date", { ascending: true, nullsFirst: false }),
     supabase.from("task_assignees").select("*"),
     supabase.from("task_files").select("*"),
     supabase.from("voice_notes").select("*"),
     supabase.from("task_notes").select("*").order("created_at", { ascending: false }),
+    supabase.from("task_activity").select("*").order("created_at", { ascending: false }).limit(120),
   ]);
 
   if (taskResult.error) {
@@ -640,7 +664,7 @@ async function loadData() {
   const notesByTask = groupBy(noteResult.data || [], "task_id");
   tasks = (taskResult.data || []).map((task) => ({
     id: task.id,
-    column: task.status,
+    column: task.status === "post" ? "live" : task.status,
     title: task.title,
     desc: task.description || "",
     date: task.task_date || "",
@@ -653,8 +677,10 @@ async function loadData() {
     voices: voicesByTask[task.id] || [],
     notes: notesByTask[task.id] || [],
   }));
+  activities = activityResult.data || [];
   notifyAssignedTaskChanges();
   notifyDeadlineReminders();
+  notifyActivityChanges();
 }
 
 function renderAll() {
@@ -985,6 +1011,7 @@ async function handleAssetAction(event) {
   const table = savedFileButton ? "task_files" : "voice_notes";
   const id = savedFileButton?.dataset.deleteFile || savedVoiceButton?.dataset.deleteVoice;
   await assertOk(await supabase.from(table).delete().eq("id", id));
+  await recordTaskActivity(getSelectedTask()?.id, savedFileButton ? "file_deleted" : "voice_deleted");
   await loadData();
   renderAll();
 }
@@ -1049,7 +1076,7 @@ async function saveTask(event) {
     closeTaskModal();
     await loadData();
     renderAll();
-    uploadAssetsAndNotify(taskId, filesToUpload, voicesToUpload, newlyAssigned);
+    uploadAssetsAndNotify(taskId, filesToUpload, voicesToUpload, newlyAssigned, isNewTask ? "" : "task_updated");
   } catch (error) {
     submitButton.disabled = false;
     alert(error.message || String(error));
@@ -1059,9 +1086,10 @@ async function saveTask(event) {
   submitButton.disabled = false;
 }
 
-async function uploadAssetsAndNotify(taskId, files, voices, newlyAssigned) {
+async function uploadAssetsAndNotify(taskId, files, voices, newlyAssigned, activityAction = "") {
   try {
     if (files.length || voices.length) await uploadPendingAssets(taskId, files, voices);
+    if (activityAction) await recordTaskActivity(taskId, activityAction);
     if (newlyAssigned.length) await sendAssignmentEmails(taskId, newlyAssigned);
     await loadData();
     renderAll();
@@ -1090,6 +1118,7 @@ async function addTaskNote() {
     note_text: note,
     created_by: session.user.id,
   }));
+  await recordTaskActivity(task.id, "note_added");
   recentLocalEdits.add(task.id);
   document.getElementById("task-note").value = "";
   await loadData();
@@ -1111,9 +1140,11 @@ async function handleNoteAction(event) {
     const nextText = prompt(t("editNotePrompt"), note.note_text || "");
     if (nextText === null || !nextText.trim()) return;
     await assertOk(await supabase.from("task_notes").update({ note_text: nextText.trim() }).eq("id", noteId));
+    await recordTaskActivity(task.id, "note_updated");
   } else {
     if (!confirm(t("deleteNoteConfirm"))) return;
     await assertOk(await supabase.from("task_notes").delete().eq("id", noteId));
+    await recordTaskActivity(task.id, "note_deleted");
   }
 
   recentLocalEdits.add(task.id);
@@ -1154,6 +1185,7 @@ async function uploadPendingAssets(taskId, files = pendingFiles, voices = pendin
       file_type: file.type,
       created_by: session.user.id,
     }));
+    await recordTaskActivity(taskId, "file_added");
   }
 
   for (const voice of voices) {
@@ -1172,6 +1204,20 @@ async function uploadPendingAssets(taskId, files = pendingFiles, voices = pendin
       created_by: session.user.id,
     };
     await assertOk(await supabase.from("voice_notes").insert(voicePayload));
+    await recordTaskActivity(taskId, "voice_added");
+  }
+}
+
+async function recordTaskActivity(taskId, action) {
+  if (!taskId || !action) return;
+  try {
+    await supabase.from("task_activity").insert({
+      task_id: taskId,
+      action,
+      actor_id: session.user.id,
+    });
+  } catch (error) {
+    console.warn("Task activity could not be recorded.", error);
   }
 }
 
@@ -1335,7 +1381,27 @@ function currentNotifications() {
       return notices;
     })
     .filter((notice) => !notificationSet("deleted").has(notice.id))
+    .concat(activityNotifications())
     .map((notice) => ({ ...notice, read: notificationSet("read").has(notice.id) }));
+}
+
+function activityNotifications() {
+  if (!currentProfile) return [];
+  return activities
+    .map((activity) => ({ activity, task: tasks.find((task) => task.id === activity.task_id) }))
+    .filter(({ activity, task }) => task && task.assignees.includes(currentProfile.id) && activity.actor_id !== session.user.id)
+    .map(({ activity, task }) => {
+      const actor = labelAuthUser(activity.actor_id) || t("teamFallback");
+      return {
+        id: notificationId(`activity-${activity.action}-${activity.id}`, task),
+        type: "activity",
+        task,
+        title: t("activityNotice"),
+        body: `${actor} ${activityLabel(activity.action)}: ${task.title}`,
+        createdAt: activity.created_at,
+      };
+    })
+    .filter((notice) => !notificationSet("deleted").has(notice.id));
 }
 
 function renderNotification(notice) {
@@ -1353,6 +1419,20 @@ function renderNotification(notice) {
       </button>
     </div>
   `;
+}
+
+function activityLabel(action) {
+  const map = {
+    task_updated: "activityTaskUpdated",
+    note_added: "activityNoteAdded",
+    note_updated: "activityNoteUpdated",
+    note_deleted: "activityNoteDeleted",
+    file_added: "activityFileAdded",
+    file_deleted: "activityFileDeleted",
+    voice_added: "activityVoiceAdded",
+    voice_deleted: "activityVoiceDeleted",
+  };
+  return t(map[action] || "activityNotice");
 }
 
 function notificationId(type, task) {
@@ -1612,6 +1692,27 @@ function notifyDeadlineReminders() {
       sent.add(task.id);
     });
   localStorage.setItem(key, JSON.stringify([...sent]));
+}
+
+function notifyActivityChanges() {
+  if (!currentProfile || !("Notification" in window) || Notification.permission !== "granted") return;
+  const key = `workflow-seen-activity-${currentProfile.id}`;
+  const seen = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  const notices = activityNotifications();
+
+  if (!activityBaselineReady) {
+    notices.forEach((notice) => seen.add(notice.id));
+    localStorage.setItem(key, JSON.stringify([...seen]));
+    activityBaselineReady = true;
+    return;
+  }
+
+  notices.forEach((notice) => {
+    if (seen.has(notice.id)) return;
+    seen.add(notice.id);
+    new Notification(notice.title, { body: notice.body });
+  });
+  localStorage.setItem(key, JSON.stringify([...seen]));
 }
 
 function taskFingerprint(task) {

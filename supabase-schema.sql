@@ -81,6 +81,18 @@ create table if not exists public.task_notes (
   created_at timestamptz default now()
 );
 
+create table if not exists public.task_activity (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid references public.tasks(id) on delete cascade,
+  action text not null,
+  actor_id uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+update public.tasks
+set status = 'live'
+where status = 'post';
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -141,6 +153,7 @@ alter table public.task_assignees enable row level security;
 alter table public.task_files enable row level security;
 alter table public.voice_notes enable row level security;
 alter table public.task_notes enable row level security;
+alter table public.task_activity enable row level security;
 
 drop policy if exists "profiles read authenticated" on public.profiles;
 create policy "profiles read authenticated" on public.profiles
@@ -222,6 +235,14 @@ create policy "task notes update own" on public.task_notes
   for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
 create policy "task notes delete own" on public.task_notes
   for delete to authenticated using (auth.uid() = created_by);
+
+drop policy if exists "task activity read authenticated" on public.task_activity;
+create policy "task activity read authenticated" on public.task_activity
+  for select to authenticated using (true);
+
+drop policy if exists "task activity insert authenticated" on public.task_activity;
+create policy "task activity insert authenticated" on public.task_activity
+  for insert to authenticated with check (auth.uid() = actor_id);
 
 insert into storage.buckets (id, name, public)
 values ('task-assets', 'task-assets', true)

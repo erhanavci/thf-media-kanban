@@ -74,7 +74,20 @@ create table if not exists public.task_notes (
   created_at timestamptz default now()
 );
 
+create table if not exists public.task_activity (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid references public.tasks(id) on delete cascade,
+  action text not null,
+  actor_id uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+update public.tasks
+set status = 'live'
+where status = 'post';
+
 alter table public.task_notes enable row level security;
+alter table public.task_activity enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -323,6 +336,15 @@ create policy "task notes update own" on public.task_notes
 
 create policy "task notes delete own" on public.task_notes
   for delete to authenticated using (public.is_approved() and created_by = auth.uid());
+
+drop policy if exists "task activity read approved" on public.task_activity;
+drop policy if exists "task activity insert approved" on public.task_activity;
+
+create policy "task activity read approved" on public.task_activity
+  for select to authenticated using (public.is_approved());
+
+create policy "task activity insert approved" on public.task_activity
+  for insert to authenticated with check (public.is_approved() and actor_id = auth.uid());
 
 -- Run this once after replacing the email with your own login email.
  update public.profiles
