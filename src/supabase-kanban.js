@@ -130,7 +130,10 @@ const i18n = {
     profileLabel: "Profile",
     profileTitle: "Profile Settings",
     profilePhoto: "Profile photo",
+    changePhoto: "Change",
+    removePhoto: "Remove",
     newPassword: "New password",
+    saving: "Saving...",
     profileSaved: "Profile updated.",
     adminPageTitle: "Admin Panel",
     notificationsLabel: "Notifications",
@@ -246,7 +249,10 @@ const i18n = {
     profileLabel: "Profil",
     profileTitle: "Profil Ayarları",
     profilePhoto: "Profil fotoğrafı",
+    changePhoto: "Değiştir",
+    removePhoto: "Sil",
     newPassword: "Yeni şifre",
+    saving: "Kaydediliyor...",
     profileSaved: "Profil güncellendi.",
     adminPageTitle: "Admin Paneli",
     notificationsLabel: "Bildirimler",
@@ -311,6 +317,8 @@ let notificationBaselineReady = false;
 let dataChannel = null;
 let taskFingerprints = new Map();
 let recentLocalEdits = new Set();
+let profilePhotoMarkedForRemoval = false;
+let profilePreviewObjectUrl = "";
 
 const authScreen = document.getElementById("auth-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -404,6 +412,9 @@ function wireEvents() {
   taskForm.addEventListener("submit", saveTask);
   userForm.addEventListener("submit", addProfile);
   profileForm.addEventListener("submit", saveProfile);
+  document.getElementById("change-profile-photo").addEventListener("click", () => document.getElementById("profile-photo").click());
+  document.getElementById("remove-profile-photo").addEventListener("click", removeProfilePhotoPreview);
+  document.getElementById("profile-photo").addEventListener("change", updateProfilePhotoPreview);
   document.getElementById("approval-list").addEventListener("click", approveUser);
   profileButton.addEventListener("click", openProfileModal);
   adminPageButton.addEventListener("click", () => openPanel(adminModal));
@@ -1178,6 +1189,8 @@ function openProfileModal() {
   document.getElementById("profile-role").value = currentProfile?.role || "";
   document.getElementById("profile-photo").value = "";
   document.getElementById("profile-password").value = "";
+  profilePhotoMarkedForRemoval = false;
+  renderProfilePhotoPreview(currentProfile?.avatar_url || "");
   openPanel(profileModal);
 }
 
@@ -1197,6 +1210,11 @@ function closePanel(panel) {
 
 async function saveProfile(event) {
   event.preventDefault();
+  const saveButton = document.getElementById("profile-save-button");
+  const saveText = saveButton.querySelector("span");
+  const originalText = saveText.textContent;
+  saveButton.disabled = true;
+  saveText.textContent = t("saving");
   const payload = {
     full_name: document.getElementById("profile-name").value.trim() || currentProfile.full_name,
     role: document.getElementById("profile-role").value.trim() || currentProfile.role,
@@ -1204,6 +1222,7 @@ async function saveProfile(event) {
   const photo = document.getElementById("profile-photo").files?.[0];
 
   try {
+    if (profilePhotoMarkedForRemoval) payload.avatar_url = null;
     if (photo) {
       const path = `profiles/${currentProfile.id}/${crypto.randomUUID()}-${safeName(photo.name)}`;
       const { error } = await supabase.storage.from("task-assets").upload(path, photo, {
@@ -1229,7 +1248,40 @@ async function saveProfile(event) {
     alert(t("profileSaved"));
   } catch (error) {
     alert(error.message || String(error));
+  } finally {
+    saveButton.disabled = false;
+    saveText.textContent = originalText || t("saveButton");
   }
+}
+
+function updateProfilePhotoPreview() {
+  const file = document.getElementById("profile-photo").files?.[0];
+  if (!file) return;
+  if (profilePreviewObjectUrl) URL.revokeObjectURL(profilePreviewObjectUrl);
+  profilePreviewObjectUrl = URL.createObjectURL(file);
+  profilePhotoMarkedForRemoval = false;
+  renderProfilePhotoPreview(profilePreviewObjectUrl);
+}
+
+function removeProfilePhotoPreview() {
+  document.getElementById("profile-photo").value = "";
+  profilePhotoMarkedForRemoval = true;
+  renderProfilePhotoPreview("");
+}
+
+function renderProfilePhotoPreview(url) {
+  const preview = document.getElementById("profile-photo-preview");
+  const removeButton = document.getElementById("remove-profile-photo");
+  const label = escapeHtml(currentProfile?.full_name || t("teamFallback"));
+  preview.innerHTML = url
+    ? `<img src="${url}" alt="${label}" />`
+    : `
+      <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21a8 8 0 0 0-16 0"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+    `;
+  removeButton.classList.toggle("app-hidden", !url);
 }
 
 function renderProfileShell() {

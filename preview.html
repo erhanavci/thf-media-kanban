@@ -190,6 +190,25 @@
             <button class="ghost-button icon-button" type="button" data-close-panel aria-label="Close">×</button>
           </div>
           <form id="profile-form" class="task-form">
+            <div class="profile-photo-editor">
+              <div class="profile-photo-preview" id="profile-photo-preview"></div>
+              <div class="profile-photo-actions">
+                <button class="ghost-button icon-text-button" type="button" id="change-profile-photo">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                  </svg>
+                  <span data-i18n="changePhoto">Change</span>
+                </button>
+                <button class="danger-button icon-text-button app-hidden" type="button" id="remove-profile-photo">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path>
+                  </svg>
+                  <span data-i18n="removePhoto">Remove</span>
+                </button>
+              </div>
+              <input id="profile-photo" class="app-hidden" type="file" accept="image/*" />
+            </div>
             <label>
               <span data-i18n="nameLabel">Full name</span>
               <input id="profile-name" type="text" />
@@ -198,16 +217,18 @@
               <span data-i18n="roleLabel">Role</span>
               <input id="profile-role" type="text" />
             </label>
-            <label class="file-drop">
-              <span data-i18n="profilePhoto">Profile photo</span>
-              <input id="profile-photo" type="file" accept="image/*" />
-            </label>
             <label>
               <span data-i18n="newPassword">New password</span>
               <input id="profile-password" type="password" autocomplete="new-password" minlength="6" />
             </label>
             <div class="form-actions">
-              <button class="primary-button" type="submit" data-i18n="saveButton">Save</button>
+              <button class="primary-button icon-text-button" type="submit" id="profile-save-button">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+                  <path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path>
+                </svg>
+                <span data-i18n="saveButton">Save</span>
+              </button>
             </div>
           </form>
         </section>
