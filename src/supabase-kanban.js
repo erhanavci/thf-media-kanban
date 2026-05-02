@@ -127,6 +127,22 @@ const i18n = {
     approvalTitle: "User Approvals",
     approveButton: "Approve",
     noPendingUsers: "No users pending approval.",
+    profileLabel: "Profile",
+    profileTitle: "Profile Settings",
+    profilePhoto: "Profile photo",
+    newPassword: "New password",
+    profileSaved: "Profile updated.",
+    adminPageTitle: "Admin Panel",
+    notificationsLabel: "Notifications",
+    notificationsTitle: "Notifications",
+    noNotifications: "No notifications yet.",
+    deadlineTomorrowTitle: "Deadline tomorrow",
+    deadlineTomorrowBody: "is due tomorrow.",
+    assignedNotice: "Assigned to you",
+    editNote: "Edit",
+    deleteNote: "Delete",
+    editNotePrompt: "Edit note",
+    deleteNoteConfirm: "Delete this note?",
   },
   tr: {
     authKicker: "THF Medya Ekibi • Güvenli Operasyon Merkezi",
@@ -225,6 +241,22 @@ const i18n = {
     approvalTitle: "Kullanıcı Onayları",
     approveButton: "Onayla",
     noPendingUsers: "Onay bekleyen kullanıcı yok.",
+    profileLabel: "Profil",
+    profileTitle: "Profil Ayarları",
+    profilePhoto: "Profil fotoğrafı",
+    newPassword: "Yeni şifre",
+    profileSaved: "Profil güncellendi.",
+    adminPageTitle: "Admin Paneli",
+    notificationsLabel: "Bildirimler",
+    notificationsTitle: "Bildirimler",
+    noNotifications: "Henüz bildirim yok.",
+    deadlineTomorrowTitle: "Deadline yarın",
+    deadlineTomorrowBody: "görevinin deadline tarihi yarın.",
+    assignedNotice: "Sana atandı",
+    editNote: "Düzenle",
+    deleteNote: "Sil",
+    editNotePrompt: "Notu düzenle",
+    deleteNoteConfirm: "Bu not silinsin mi?",
   },
 };
 
@@ -286,6 +318,13 @@ const userForm = document.getElementById("user-form");
 const recordButton = document.getElementById("record-button");
 const voiceStatus = document.getElementById("voice-status");
 const taskModal = document.getElementById("task-modal");
+const profileModal = document.getElementById("profile-modal");
+const adminModal = document.getElementById("admin-modal");
+const notificationsModal = document.getElementById("notifications-modal");
+const profileButton = document.getElementById("profile-button");
+const adminPageButton = document.getElementById("admin-page-button");
+const notificationButton = document.getElementById("notification-button");
+const profileForm = document.getElementById("profile-form");
 
 boot();
 
@@ -317,10 +356,6 @@ function wireEvents() {
   document.getElementById("register-form").addEventListener("submit", register);
   document.getElementById("logout-button").addEventListener("click", logout);
   document.getElementById("pending-logout-button").addEventListener("click", logout);
-  document.getElementById("show-all-button").addEventListener("click", () => {
-    activeColumn = "all";
-    renderBoard();
-  });
   document.getElementById("new-task-button").addEventListener("click", () => {
     selectedTaskId = "";
     pendingFiles = [];
@@ -340,7 +375,9 @@ function wireEvents() {
   document.getElementById("close-task-modal").addEventListener("click", closeTaskModal);
   document.getElementById("task-modal-backdrop").addEventListener("click", closeTaskModal);
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !taskModal.classList.contains("app-hidden")) closeTaskModal();
+    if (event.key !== "Escape") return;
+    if (!taskModal.classList.contains("app-hidden")) closeTaskModal();
+    document.querySelectorAll(".panel-modal:not(.app-hidden)").forEach(closePanel);
   });
   document.getElementById("calendar-prev").addEventListener("click", () => moveCalendarMonth(-1));
   document.getElementById("calendar-next").addEventListener("click", () => moveCalendarMonth(1));
@@ -350,6 +387,7 @@ function wireEvents() {
   });
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
   document.getElementById("add-note-button").addEventListener("click", addTaskNote);
+  document.getElementById("note-list").addEventListener("click", handleNoteAction);
   document.getElementById("task-date").addEventListener("change", (event) => {
     if (activeColumn === "all") {
       document.getElementById("task-column").value = columnFromDate(event.target.value);
@@ -357,7 +395,27 @@ function wireEvents() {
   });
   taskForm.addEventListener("submit", saveTask);
   userForm.addEventListener("submit", addProfile);
+  profileForm.addEventListener("submit", saveProfile);
   document.getElementById("approval-list").addEventListener("click", approveUser);
+  profileButton.addEventListener("click", openProfileModal);
+  adminPageButton.addEventListener("click", () => openPanel(adminModal));
+  notificationButton.addEventListener("click", () => {
+    renderNotifications();
+    openPanel(notificationsModal);
+  });
+  document.getElementById("notification-list").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-notification-task]");
+    if (!button) return;
+    selectedTaskId = button.dataset.notificationTask;
+    pendingFiles = [];
+    pendingVoices = [];
+    renderEditor();
+    closePanel(notificationsModal);
+    openTaskModal();
+  });
+  document.querySelectorAll("[data-close-panel]").forEach((button) => {
+    button.addEventListener("click", (event) => closePanel(event.target.closest(".panel-modal")));
+  });
   recordButton.addEventListener("click", toggleRecording);
   board.addEventListener("click", handleBoardClick);
   board.addEventListener("keydown", handleBoardKeydown);
@@ -400,7 +458,11 @@ async function logout() {
   selectedTaskId = "";
   pendingFiles = [];
   pendingVoices = [];
+  notificationBaselineReady = false;
+  taskFingerprints = new Map();
+  recentLocalEdits = new Set();
   closeTaskModal();
+  document.querySelectorAll(".panel-modal:not(.app-hidden)").forEach(closePanel);
   if (dataChannel) {
     supabase.removeChannel(dataChannel);
     dataChannel = null;
@@ -464,6 +526,7 @@ async function renderShell() {
   subscribeDataChanges();
   document.getElementById("current-user-label").textContent =
     `${currentProfile?.full_name || session.user.email} • ${currentProfile?.role || t("teamFallback")}`;
+  renderProfileShell();
   renderAll();
 }
 
@@ -542,6 +605,7 @@ async function loadData() {
   }
 
   profiles = profileResult.data || [];
+  currentProfile = profiles.find((profile) => profile.auth_user_id === session.user.id) || currentProfile;
   const assigneesByTask = groupBy(assigneeResult.data || [], "task_id");
   const filesByTask = groupBy(fileResult.data || [], "task_id");
   const voicesByTask = groupBy(voiceResult.data || [], "task_id");
@@ -562,6 +626,7 @@ async function loadData() {
     notes: notesByTask[task.id] || [],
   }));
   notifyAssignedTaskChanges();
+  notifyDeadlineReminders();
 }
 
 function renderAll() {
@@ -572,6 +637,8 @@ function renderAll() {
   renderCalendar();
   if (!taskModal.classList.contains("app-hidden")) renderEditor();
   renderAdminPanel();
+  renderProfileShell();
+  renderNotifications();
 }
 
 function renderSelectors() {
@@ -608,10 +675,10 @@ function renderAssigneeChecklist(assignees = []) {
 }
 
 function renderAdminPanel() {
-  const panel = document.getElementById("admin-panel");
   const list = document.getElementById("approval-list");
   const isAdmin = Boolean(currentProfile?.is_admin);
-  panel.classList.toggle("app-hidden", !isAdmin);
+  adminPageButton.classList.toggle("app-hidden", !isAdmin);
+  if (!isAdmin) closePanel(adminModal);
   if (!isAdmin) return;
 
   const pending = profiles.filter((profile) => profile.approval_status === "pending" && profile.auth_user_id);
@@ -633,11 +700,10 @@ function renderAdminPanel() {
 }
 
 function renderBoard() {
-  const active = columns.find((column) => column.id === activeColumn);
-  document.getElementById("active-view-title").textContent = active ? colTitle(active) : t("allPipeline");
-  const visibleColumns = activeColumn === "all" ? columns : columns.filter((column) => column.id === activeColumn);
-  board.classList.toggle("all-fit", activeColumn === "all");
-  board.innerHTML = visibleColumns
+  activeColumn = "all";
+  document.getElementById("active-view-title").textContent = t("allPipeline");
+  board.classList.add("all-fit");
+  board.innerHTML = columns
     .map((column) => {
       const columnTasks = tasks.filter((task) => task.column === column.id);
       return `
@@ -739,7 +805,7 @@ function openTaskModal() {
 
 function closeTaskModal() {
   taskModal.classList.add("app-hidden");
-  document.body.classList.remove("modal-open");
+  if (!document.querySelector(".panel-modal:not(.app-hidden)")) document.body.classList.remove("modal-open");
 }
 
 function renderAssets(task) {
@@ -811,20 +877,29 @@ function renderNote(note) {
   const meta = [labelAuthUser(note.created_by), note.created_at ? formatDateTime(note.created_at) : ""].filter(Boolean).join(" • ");
   return `
     <article class="note-item">
-      <p>${escapeHtml(note.note_text || "")}</p>
-      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+      <div class="note-body">
+        <p>${escapeHtml(note.note_text || "")}</p>
+        ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+      </div>
+      <div class="note-actions">
+        <button class="icon-mini-button" type="button" data-edit-note="${note.id}" aria-label="${t("editNote")}">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m18 2 4 4-14 14H4v-4L18 2z"></path>
+          </svg>
+        </button>
+        <button class="icon-mini-button danger" type="button" data-delete-note="${note.id}" aria-label="${t("deleteNote")}">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path>
+          </svg>
+        </button>
+      </div>
     </article>
   `;
 }
 
 function handleBoardClick(event) {
   if (event.target.closest("audio, a, img, input, select, textarea, button:not([data-filter])")) return;
-  const heading = event.target.closest("[data-filter]");
   const card = event.target.closest("[data-task]");
-  if (heading) {
-    activeColumn = heading.dataset.filter;
-    renderBoard();
-  }
   if (card) {
     selectedTaskId = card.dataset.task;
     pendingFiles = [];
@@ -896,6 +971,7 @@ async function saveTask(event) {
   event.preventDefault();
   const id = document.getElementById("task-id").value;
   const isNewTask = !id;
+  const previousAssignees = new Set(getSelectedTask()?.assignees || []);
   const payload = {
     title: document.getElementById("task-title").value.trim(),
     description: document.getElementById("task-desc").value.trim(),
@@ -924,7 +1000,8 @@ async function saveTask(event) {
     await assertOk(await supabase.from("task_assignees").delete().eq("task_id", taskId));
     const assignees = getSelectedAssignees().map((userId) => ({ task_id: taskId, user_id: userId }));
     if (assignees.length) await assertOk(await supabase.from("task_assignees").insert(assignees));
-    if (isNewTask && assignees.length) await sendAssignmentEmails(taskId, assignees.map((item) => item.user_id));
+    const newlyAssigned = assignees.map((item) => item.user_id).filter((userId) => isNewTask || !previousAssignees.has(userId));
+    if (newlyAssigned.length) await sendAssignmentEmails(taskId, newlyAssigned);
     await uploadPendingAssets(taskId);
   } catch (error) {
     alert(error.message || String(error));
@@ -962,6 +1039,31 @@ async function addTaskNote() {
   }));
   recentLocalEdits.add(task.id);
   document.getElementById("task-note").value = "";
+  await loadData();
+  renderAll();
+}
+
+async function handleNoteAction(event) {
+  const editButton = event.target.closest("[data-edit-note]");
+  const deleteButton = event.target.closest("[data-delete-note]");
+  if (!editButton && !deleteButton) return;
+  event.preventDefault();
+  const task = getSelectedTask();
+  if (!task) return;
+  const noteId = editButton?.dataset.editNote || deleteButton?.dataset.deleteNote;
+  const note = task.notes.find((item) => item.id === noteId);
+  if (!note) return;
+
+  if (editButton) {
+    const nextText = prompt(t("editNotePrompt"), note.note_text || "");
+    if (nextText === null || !nextText.trim()) return;
+    await assertOk(await supabase.from("task_notes").update({ note_text: nextText.trim() }).eq("id", noteId));
+  } else {
+    if (!confirm(t("deleteNoteConfirm"))) return;
+    await assertOk(await supabase.from("task_notes").delete().eq("id", noteId));
+  }
+
+  recentLocalEdits.add(task.id);
   await loadData();
   renderAll();
 }
@@ -1012,6 +1114,7 @@ async function uploadPendingAssets(taskId) {
     const voicePayload = {
       task_id: taskId,
       audio_url: data.publicUrl,
+      file_name: voice.name,
       created_by: session.user.id,
     };
     await assertOk(await supabase.from("voice_notes").insert(voicePayload));
@@ -1027,6 +1130,113 @@ async function addProfile(event) {
   document.getElementById("user-name").value = "";
   await loadData();
   renderAll();
+}
+
+function openProfileModal() {
+  document.getElementById("profile-name").value = currentProfile?.full_name || "";
+  document.getElementById("profile-role").value = currentProfile?.role || "";
+  document.getElementById("profile-photo").value = "";
+  document.getElementById("profile-password").value = "";
+  openPanel(profileModal);
+}
+
+function openPanel(panel) {
+  if (!panel) return;
+  panel.classList.remove("app-hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closePanel(panel) {
+  if (!panel) return;
+  panel.classList.add("app-hidden");
+  if (taskModal.classList.contains("app-hidden") && !document.querySelector(".panel-modal:not(.app-hidden)")) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+async function saveProfile(event) {
+  event.preventDefault();
+  const payload = {
+    full_name: document.getElementById("profile-name").value.trim() || currentProfile.full_name,
+    role: document.getElementById("profile-role").value.trim() || currentProfile.role,
+  };
+  const photo = document.getElementById("profile-photo").files?.[0];
+
+  try {
+    if (photo) {
+      const path = `profiles/${currentProfile.id}/${crypto.randomUUID()}-${safeName(photo.name)}`;
+      const { error } = await supabase.storage.from("task-assets").upload(path, photo, {
+        contentType: photo.type,
+        upsert: true,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("task-assets").getPublicUrl(path);
+      payload.avatar_url = data.publicUrl;
+    }
+
+    const password = document.getElementById("profile-password").value;
+    if (password) {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+    }
+
+    await assertOk(await supabase.from("profiles").update(payload).eq("id", currentProfile.id));
+    await ensureProfile();
+    await loadData();
+    renderAll();
+    closePanel(profileModal);
+    alert(t("profileSaved"));
+  } catch (error) {
+    alert(error.message || String(error));
+  }
+}
+
+function renderProfileShell() {
+  const avatar = document.getElementById("profile-avatar");
+  document.getElementById("profile-initials").textContent = initialsFromName(currentProfile?.full_name || session?.user?.email || "");
+  if (currentProfile?.avatar_url) {
+    avatar.src = currentProfile.avatar_url;
+    avatar.classList.remove("app-hidden");
+  } else {
+    avatar.removeAttribute("src");
+    avatar.classList.add("app-hidden");
+  }
+  document.getElementById("current-user-label").textContent =
+    `${currentProfile?.full_name || session?.user?.email || ""} • ${currentProfile?.role || t("teamFallback")}`;
+}
+
+function renderNotifications() {
+  const notices = currentNotifications();
+  const count = document.getElementById("notification-count");
+  count.textContent = String(notices.length);
+  count.classList.toggle("app-hidden", notices.length === 0);
+  document.getElementById("notification-list").innerHTML = notices.length
+    ? notices.map(renderNotification).join("")
+    : `<p class="empty-note">${t("noNotifications")}</p>`;
+}
+
+function currentNotifications() {
+  if (!currentProfile) return [];
+  const today = todayKey();
+  return tasks
+    .filter((task) => task.assignees.includes(currentProfile.id))
+    .flatMap((task) => {
+      const notices = [{ type: "assigned", task, title: t("assignedNotice"), body: task.title }];
+      if (task.deadline && daysBetween(today, task.deadline) === 1 && task.progress !== "completed") {
+        notices.unshift({ type: "deadline", task, title: t("deadlineTomorrowTitle"), body: `${task.title} ${t("deadlineTomorrowBody")}` });
+      }
+      return notices;
+    });
+}
+
+function renderNotification(notice) {
+  return `
+    <button class="notification-item ${notice.type}" type="button" data-notification-task="${notice.task.id}">
+      <strong>${escapeHtml(notice.title)}</strong>
+      <span>${escapeHtml(notice.body)}</span>
+      ${notice.task.deadline ? `<small>${t("due")}: ${formatDate(notice.task.deadline)}</small>` : ""}
+    </button>
+  `;
 }
 
 async function approveUser(event) {
@@ -1208,6 +1418,24 @@ function notifyAssignedTaskChanges() {
   localStorage.setItem(key, JSON.stringify([...seen]));
 }
 
+function notifyDeadlineReminders() {
+  if (!currentProfile || !("Notification" in window) || Notification.permission !== "granted") return;
+  const today = todayKey();
+  const key = `workflow-deadline-notified-${currentProfile.id}-${today}`;
+  const sent = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  tasks
+    .filter((task) => task.assignees.includes(currentProfile.id))
+    .filter((task) => task.deadline && task.progress !== "completed" && daysBetween(today, task.deadline) === 1)
+    .forEach((task) => {
+      if (sent.has(task.id)) return;
+      new Notification(t("deadlineTomorrowTitle"), {
+        body: `${task.title} • ${t("due")}: ${formatDate(task.deadline)}`,
+      });
+      sent.add(task.id);
+    });
+  localStorage.setItem(key, JSON.stringify([...sent]));
+}
+
 function taskFingerprint(task) {
   return JSON.stringify({
     title: task.title,
@@ -1282,6 +1510,28 @@ function formatDateTime(date) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(date));
+}
+
+function todayKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+function daysBetween(start, end) {
+  const first = new Date(`${start}T12:00:00`);
+  const second = new Date(`${end}T12:00:00`);
+  return Math.round((second - first) / 86400000);
+}
+
+function initialsFromName(name = "") {
+  return (
+    name
+      .split(/[\s@._-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U"
+  );
 }
 
 function safeName(name) {

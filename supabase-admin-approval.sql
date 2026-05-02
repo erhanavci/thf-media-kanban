@@ -1,6 +1,7 @@
 alter table public.profiles add column if not exists auth_user_id uuid;
 alter table public.profiles add column if not exists approval_status text default 'pending';
 alter table public.profiles add column if not exists is_admin boolean default false;
+alter table public.profiles add column if not exists avatar_url text;
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
 alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
@@ -104,6 +105,28 @@ as $$
   );
 $$;
 
+create or replace function public.protect_profile_admin_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    new.id = old.id;
+    new.auth_user_id = old.auth_user_id;
+    new.approval_status = old.approval_status;
+    new.is_admin = old.is_admin;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_admin_fields_trigger on public.profiles;
+create trigger protect_profile_admin_fields_trigger
+before update on public.profiles
+for each row execute function public.protect_profile_admin_fields();
+
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -190,8 +213,8 @@ create policy "profiles insert self or approved team member" on public.profiles
 
 create policy "profiles update admin only" on public.profiles
   for update to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+  using (public.is_admin() or auth.uid() = auth_user_id)
+  with check (public.is_admin() or auth.uid() = auth_user_id);
 
 drop policy if exists "tasks read authenticated" on public.tasks;
 drop policy if exists "tasks insert authenticated" on public.tasks;

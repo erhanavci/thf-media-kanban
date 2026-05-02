@@ -625,7 +625,7 @@ h1 span {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -1625,6 +1625,150 @@ h1 span {
 
 .empty-note {
   margin: 0;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.top-icon-button,
+.avatar-button,
+.icon-mini-button {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.top-icon-button {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 950;
+}
+
+.top-icon-button em {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e30613;
+  padding: 0 5px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 20px;
+  box-shadow: 0 8px 18px rgba(227, 6, 19, 0.3);
+}
+
+.avatar-button {
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 950;
+}
+
+.avatar-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.panel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.panel-modal-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 16px;
+  width: min(100%, 720px);
+  max-height: min(90vh, 900px);
+  overflow: auto;
+}
+
+.panel-modal-card.narrow {
+  width: min(100%, 520px);
+}
+
+.note-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.note-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.note-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-mini-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.icon-mini-button.danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(127, 29, 29, 0.52);
+}
+
+.notification-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid rgba(14, 165, 233, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 12px;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-item.deadline {
+  border-left-color: #e30613;
+  background: rgba(227, 6, 19, 0.13);
+}
+
+.notification-item strong {
+  font-size: 0.92rem;
+}
+
+.notification-item span,
+.notification-item small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
 }
 
 .column-heading {
