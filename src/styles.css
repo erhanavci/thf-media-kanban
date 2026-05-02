@@ -1094,6 +1094,14 @@ h1 span {
   flex-wrap: wrap;
 }
 
+.form-status {
+  min-height: 18px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .panel-heading {
   justify-content: space-between;
   gap: 12px;

@@ -135,6 +135,7 @@ const i18n = {
     newPassword: "New password",
     saving: "Saving...",
     profileSaved: "Profile updated.",
+    saveTimeout: "Save request timed out. Please try again.",
     adminPageTitle: "Admin Panel",
     notificationsLabel: "Notifications",
     notificationsTitle: "Notifications",
@@ -254,6 +255,7 @@ const i18n = {
     newPassword: "Yeni şifre",
     saving: "Kaydediliyor...",
     profileSaved: "Profil güncellendi.",
+    saveTimeout: "Kaydetme isteği zaman aşımına uğradı. Lütfen tekrar dene.",
     adminPageTitle: "Admin Paneli",
     notificationsLabel: "Bildirimler",
     notificationsTitle: "Bildirimler",
@@ -1189,6 +1191,7 @@ function openProfileModal() {
   document.getElementById("profile-role").value = currentProfile?.role || "";
   document.getElementById("profile-photo").value = "";
   document.getElementById("profile-password").value = "";
+  document.getElementById("profile-status").textContent = "";
   profilePhotoMarkedForRemoval = false;
   renderProfilePhotoPreview(currentProfile?.avatar_url || "");
   openPanel(profileModal);
@@ -1212,9 +1215,11 @@ async function saveProfile(event) {
   event.preventDefault();
   const saveButton = document.getElementById("profile-save-button");
   const saveText = saveButton.querySelector("span");
+  const status = document.getElementById("profile-status");
   const originalText = saveText.textContent;
   saveButton.disabled = true;
   saveText.textContent = t("saving");
+  status.textContent = t("saving");
   const payload = {
     full_name: document.getElementById("profile-name").value.trim() || currentProfile.full_name,
     role: document.getElementById("profile-role").value.trim() || currentProfile.role,
@@ -1225,10 +1230,12 @@ async function saveProfile(event) {
     if (profilePhotoMarkedForRemoval) payload.avatar_url = null;
     if (photo) {
       const path = `profiles/${currentProfile.id}/${crypto.randomUUID()}-${safeName(photo.name)}`;
-      const { error } = await supabase.storage.from("task-assets").upload(path, photo, {
-        contentType: photo.type,
-        upsert: true,
-      });
+      const { error } = await withTimeout(
+        supabase.storage.from("task-assets").upload(path, photo, {
+          contentType: photo.type,
+          upsert: true,
+        }),
+      );
       if (error) throw error;
       const { data } = supabase.storage.from("task-assets").getPublicUrl(path);
       payload.avatar_url = data.publicUrl;
@@ -1236,18 +1243,21 @@ async function saveProfile(event) {
 
     const password = document.getElementById("profile-password").value;
     if (password) {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await withTimeout(supabase.auth.updateUser({ password }));
       if (error) throw error;
     }
 
-    await assertOk(await supabase.from("profiles").update(payload).eq("id", currentProfile.id));
-    await ensureProfile();
-    await loadData();
+    const result = await withTimeout(
+      supabase.from("profiles").update(payload).eq("auth_user_id", session.user.id).select("*").single(),
+    );
+    await assertOk(result);
+    currentProfile = result.data || { ...currentProfile, ...payload };
+    profiles = profiles.map((profile) => (profile.id === currentProfile.id ? currentProfile : profile));
     renderAll();
     closePanel(profileModal);
-    alert(t("profileSaved"));
+    status.textContent = "";
   } catch (error) {
-    alert(error.message || String(error));
+    status.textContent = error.message || String(error);
   } finally {
     saveButton.disabled = false;
     saveText.textContent = originalText || t("saveButton");
@@ -1631,6 +1641,15 @@ function groupBy(rows, key) {
 function assertOk(result) {
   if (result?.error) throw result.error;
   return result;
+}
+
+function withTimeout(promise, ms = 12000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(t("saveTimeout"))), ms);
+    }),
+  ]);
 }
 
 function setAuthMessage(message) {
