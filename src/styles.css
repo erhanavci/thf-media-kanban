@@ -688,6 +688,25 @@ h1 span {
   gap: 10px;
 }
 
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 3px;
+}
+
+.view-toggle .ghost-button {
+  min-height: 34px;
+  border: 0;
+  box-shadow: none;
+}
+
+.view-toggle .ghost-button.active {
+  background: rgba(227, 6, 19, 0.78);
+}
+
 .primary-button,
 .ghost-button,
 .danger-button {
@@ -778,6 +797,93 @@ h1 span {
 
 .kanban-board.all-fit .task-card-badges {
   justify-content: flex-start;
+}
+
+.kanban-board.list-view {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.pipeline-list-group {
+  display: grid;
+  gap: 8px;
+}
+
+.list-heading {
+  min-height: 44px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.list-heading small {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 950;
+}
+
+.pipeline-list-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.task-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.075);
+  padding: 12px;
+  color: #fff;
+  cursor: grab;
+}
+
+.task-list-row.priority-low {
+  border-left: 4px solid #38bdf8;
+}
+
+.task-list-row.priority-medium {
+  border-left: 4px solid #facc15;
+}
+
+.task-list-row.priority-high {
+  border-left: 4px solid #fb923c;
+}
+
+.task-list-row.priority-urgent {
+  border-left: 4px solid #ef4444;
+}
+
+.task-list-row.completed {
+  border-color: rgba(34, 197, 94, 0.78);
+}
+
+.task-list-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.task-list-main strong,
+.task-list-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-list-main span,
+.task-list-date {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+}
+
+.task-list-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .kanban-column {
@@ -1387,11 +1493,23 @@ h1 span {
   .toolbar-actions,
   .form-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .toolbar-actions > *,
   .form-actions > * {
     flex: 1;
+  }
+
+  .task-list-row,
+  .task-list-side {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .task-list-side {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .kanban-board {

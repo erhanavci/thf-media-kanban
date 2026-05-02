@@ -94,6 +94,8 @@ const i18n = {
     userPlaceholder: "Full name / role",
     addButton: "Add",
     allPipeline: "All Pipeline",
+    cardView: "Cards",
+    listView: "List",
     noTasks: "No tasks in this column.",
     noDescription: "No description",
     unassigned: "Unassigned",
@@ -223,6 +225,8 @@ const i18n = {
     userPlaceholder: "Ad Soyad / rol",
     addButton: "Ekle",
     allPipeline: "Tüm Pipeline",
+    cardView: "Kart",
+    listView: "Liste",
     noTasks: "Bu kolonda görev yok.",
     noDescription: "Açıklama yok",
     unassigned: "Atanmadı",
@@ -327,6 +331,7 @@ let tasks = [];
 let activities = [];
 let selectedTaskId = "";
 let activeColumn = "all";
+let pipelineView = localStorage.getItem("workflow-pipeline-view") || "cards";
 let calendarMonth = currentMonthKey();
 let lang = localStorage.getItem("workflow-language") || "en";
 let pendingFiles = [];
@@ -421,6 +426,13 @@ function wireEvents() {
   document.getElementById("task-files").addEventListener("change", (event) => {
     pendingFiles = Array.from(event.target.files || []);
     renderAssets(getSelectedTask());
+  });
+  document.querySelectorAll("[data-view-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      pipelineView = button.dataset.viewMode;
+      localStorage.setItem("workflow-pipeline-view", pipelineView);
+      renderBoard();
+    });
   });
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
   document.getElementById("add-note-button").addEventListener("click", addTaskNote);
@@ -757,7 +769,15 @@ function renderAdminPanel() {
 function renderBoard() {
   activeColumn = "all";
   document.getElementById("active-view-title").textContent = t("allPipeline");
-  board.classList.add("all-fit");
+  document.querySelectorAll("[data-view-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.viewMode === pipelineView);
+  });
+  board.classList.toggle("all-fit", pipelineView === "cards");
+  board.classList.toggle("list-view", pipelineView === "list");
+  if (pipelineView === "list") {
+    board.innerHTML = columns.map(renderListGroup).join("");
+    return;
+  }
   board.innerHTML = columns
     .map((column) => {
       const columnTasks = tasks.filter((task) => task.column === column.id);
@@ -775,6 +795,40 @@ function renderBoard() {
     .join("");
 }
 
+function renderListGroup(column) {
+  const columnTasks = tasks.filter((task) => task.column === column.id);
+  return `
+    <section class="pipeline-list-group" data-column="${column.id}">
+      <button class="column-heading list-heading ${column.tone}" type="button" data-filter="${column.id}">
+        <span>${colDay(column)}</span>
+        <small>${columnTasks.length}</small>
+      </button>
+      <div class="pipeline-list-rows" data-drop-column="${column.id}">
+        ${columnTasks.length ? columnTasks.map(renderTaskListRow).join("") : `<div class="empty-state">${t("noTasks")}</div>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderTaskListRow(task) {
+  const completed = task.progress === "completed" ? "completed" : "";
+  const assignees = task.assignees.map(profileById).filter(Boolean);
+  return `
+    <div class="task-list-row priority-${escapeHtml(task.priority)} ${completed}" role="button" tabindex="0" draggable="true" data-task="${task.id}">
+      <div class="task-list-main">
+        <strong>${escapeHtml(task.title)}</strong>
+        <span>${escapeHtml(stripSource(task.desc || t("noDescription")))}</span>
+      </div>
+      <div class="task-list-side">
+        <em class="progress-pill progress-${escapeHtml(task.progress)}">${progressLabel(task.progress)}</em>
+        <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
+        <span class="task-list-date">${task.date ? formatDate(task.date) : t("undated")}</span>
+        ${assignees.length ? `<div class="task-avatar-row">${assignees.map(renderAvatar).join("")}</div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderTaskCard(task) {
   const selected = task.id === selectedTaskId ? "selected" : "";
   const completed = task.progress === "completed" ? "completed" : "";
@@ -790,7 +844,7 @@ function renderTaskCard(task) {
           <em class="priority-pill priority-${escapeHtml(task.priority)}">${priorityLabel(task.priority)}</em>
         </div>
       </div>
-      <span>${escapeHtml(task.desc || t("noDescription"))}</span>
+      <span>${escapeHtml(stripSource(task.desc || t("noDescription")))}</span>
       ${
         thumbs.length
           ? `<div class="task-thumbnails">${thumbs.map((file) => `<img src="${file.file_url}" alt="${escapeHtml(file.file_name || t("fileFallback"))}" />`).join("")}</div>`
@@ -1592,6 +1646,14 @@ function priorityLabel(id = "medium") {
 function progressLabel(id = "ongoing") {
   const progress = progressStates.find((item) => item.id === id) || progressStates[0];
   return lang === "tr" ? progress.labelTr : progress.labelEn;
+}
+
+function stripSource(text = "") {
+  return String(text)
+    .split("\n")
+    .filter((line) => !line.trim().toLowerCase().startsWith("kaynak:"))
+    .join("\n")
+    .trim();
 }
 
 function labelAuthUser(authUserId) {
