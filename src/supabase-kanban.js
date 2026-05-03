@@ -376,6 +376,7 @@ let calendarMonth = currentMonthKey();
 let lang = localStorage.getItem("workflow-language") || "en";
 let pendingFiles = [];
 let pendingVoices = [];
+let draftTaskDefaults = {};
 let recorder = null;
 let recordedChunks = [];
 let notificationBaselineReady = false;
@@ -439,18 +440,12 @@ function wireEvents() {
   document.getElementById("register-form").addEventListener("submit", register);
   document.getElementById("logout-button").addEventListener("click", logout);
   document.getElementById("pending-logout-button").addEventListener("click", logout);
-  document.getElementById("new-task-button").addEventListener("click", () => {
-    selectedTaskId = "";
-    pendingFiles = [];
-    pendingVoices = [];
-    renderEditor();
-    openTaskModal();
-    document.getElementById("task-title").focus();
-  });
+  document.getElementById("new-task-button").addEventListener("click", () => openNewTask());
   document.getElementById("clear-button").addEventListener("click", () => {
     selectedTaskId = "";
     pendingFiles = [];
     pendingVoices = [];
+    draftTaskDefaults = {};
     taskForm.reset();
     renderEditor();
   });
@@ -530,6 +525,11 @@ function wireEvents() {
   });
   board.addEventListener("drop", handleDrop);
   document.getElementById("calendar-grid").addEventListener("click", (event) => {
+    const addButton = event.target.closest("[data-calendar-add]");
+    if (addButton) {
+      openNewTask({ date: addButton.dataset.calendarAdd });
+      return;
+    }
     const button = event.target.closest("[data-calendar-task]");
     if (!button) return;
     selectedTaskId = button.dataset.calendarTask;
@@ -538,6 +538,16 @@ function wireEvents() {
     renderEditor();
     openTaskModal();
   });
+}
+
+function openNewTask(defaults = {}) {
+  selectedTaskId = "";
+  pendingFiles = [];
+  pendingVoices = [];
+  draftTaskDefaults = defaults;
+  renderEditor();
+  openTaskModal();
+  document.getElementById("task-title").focus();
 }
 
 async function login(event) {
@@ -936,6 +946,7 @@ function renderCalendar() {
     cells.push(`
       <div class="calendar-day ${dayTasks.length ? "has-tasks" : ""}">
         <div class="calendar-date">${day}</div>
+        <button class="calendar-add-button" type="button" data-calendar-add="${date}" aria-label="${escapeHtml(t("newTaskButton"))}: ${date}">+</button>
         <div class="calendar-tasks">
           ${dayTasks.map((task) => `<button class="calendar-task priority-${escapeHtml(task.priority)}" type="button" data-calendar-task="${task.id}">${escapeHtml(task.title)}</button>`).join("")}
         </div>
@@ -947,12 +958,13 @@ function renderCalendar() {
 
 function renderEditor() {
   const task = getSelectedTask();
-  const defaultColumn = activeColumn !== "all" ? activeColumn : columnFromDate(task?.date || document.getElementById("task-date").value);
+  const defaultDate = task?.date || draftTaskDefaults.date || "";
+  const defaultColumn = activeColumn !== "all" ? activeColumn : columnFromDate(defaultDate || document.getElementById("task-date").value);
   document.getElementById("editor-title").textContent = task ? t("editTask") : t("newTask");
   document.getElementById("task-id").value = task?.id || "";
   document.getElementById("task-title").value = task?.title || "";
   document.getElementById("task-desc").value = stripSource(task?.desc || "");
-  document.getElementById("task-date").value = task?.date || "";
+  document.getElementById("task-date").value = defaultDate;
   document.getElementById("task-deadline").value = task?.deadline || "";
   document.getElementById("task-priority").value = task?.priority || "medium";
   document.getElementById("task-progress").value = task?.progress || "ongoing";
@@ -1216,6 +1228,7 @@ async function saveTask(event) {
     selectedTaskId = taskId;
     pendingFiles = [];
     pendingVoices = [];
+    draftTaskDefaults = {};
     document.getElementById("task-files").value = "";
     closeTaskModal();
     await loadData();

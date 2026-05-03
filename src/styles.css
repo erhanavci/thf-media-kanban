@@ -614,6 +614,7 @@ h1 span {
 }
 
 .calendar-day {
+  position: relative;
   display: grid;
   align-content: start;
   min-height: 116px;
@@ -643,6 +644,32 @@ h1 span {
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.82rem;
   font-weight: 900;
+}
+
+.calendar-add-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(var(--ehf-yellow-rgb), 0.72);
+  border-radius: 8px;
+  background: rgba(var(--ehf-yellow-rgb), 0.16);
+  color: var(--ehf-yellow);
+  font-family: var(--display-font);
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.calendar-add-button:hover {
+  background: var(--ehf-yellow);
+  color: var(--ehf-blue);
+  transform: translateY(-1px);
 }
 
 .calendar-tasks {
