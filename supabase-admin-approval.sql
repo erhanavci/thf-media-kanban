@@ -5,6 +5,9 @@ alter table public.profiles add column if not exists avatar_url text;
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
 alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
+alter table public.tasks add column if not exists google_meet_url text;
+alter table public.tasks add column if not exists google_event_id text;
+alter table public.tasks add column if not exists google_calendar_id text;
 alter table public.voice_notes add column if not exists file_name text;
 alter table public.task_files add column if not exists created_by uuid references auth.users(id);
 
@@ -82,12 +85,21 @@ create table if not exists public.task_activity (
   created_at timestamptz default now()
 );
 
+create table if not exists public.google_oauth_tokens (
+  id text primary key default 'default',
+  refresh_token text,
+  access_token text,
+  expires_at timestamptz,
+  updated_at timestamptz default now()
+);
+
 update public.tasks
 set status = 'live'
 where status = 'post';
 
 alter table public.task_notes enable row level security;
 alter table public.task_activity enable row level security;
+alter table public.google_oauth_tokens enable row level security;
 
 create or replace function public.is_admin()
 returns boolean

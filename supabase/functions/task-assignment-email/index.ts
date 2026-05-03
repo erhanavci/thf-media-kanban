@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "https://zzannmvjybpknetszqpb.supabase.co";
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "re_6x31g1SW_HujqAQ9giWHCR3SvMYtbMoeo";
+const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
 const fromEmail = Deno.env.get("TASK_EMAIL_FROM") ?? "erhan.avci@thf.org.tr";
 
 const corsHeaders = {

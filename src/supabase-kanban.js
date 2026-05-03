@@ -110,6 +110,14 @@ const i18n = {
     editTask: "Edit Task",
     filesTitle: "Files",
     voiceTitle: "Voice Notes",
+    googleMeetTitle: "Google Meet",
+    googleMeetReady: "Ready",
+    connectGoogle: "Connect Google",
+    createMeet: "Create Meet",
+    creatingMeet: "Creating Meet...",
+    joinMeet: "Join Meet",
+    meetCreated: "Meet link created.",
+    meetSaveFirst: "Save the task first.",
     noFiles: "No files yet.",
     noVoices: "No voice notes yet.",
     fileFallback: "File",
@@ -241,6 +249,14 @@ const i18n = {
     editTask: "Görevi Düzenle",
     filesTitle: "Dosyalar",
     voiceTitle: "Sesli Notlar",
+    googleMeetTitle: "Google Meet",
+    googleMeetReady: "Hazır",
+    connectGoogle: "Google'a Bağlan",
+    createMeet: "Meet Oluştur",
+    creatingMeet: "Meet oluşturuluyor...",
+    joinMeet: "Meet'e Katıl",
+    meetCreated: "Meet linki oluşturuldu.",
+    meetSaveFirst: "Önce görevi kaydet.",
     noFiles: "Henüz dosya yok.",
     noVoices: "Henüz sesli not yok.",
     fileFallback: "Dosya",
@@ -435,6 +451,8 @@ function wireEvents() {
     });
   });
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
+  document.getElementById("connect-google-button").addEventListener("click", connectGoogle);
+  document.getElementById("create-meet-button").addEventListener("click", createGoogleMeet);
   document.getElementById("add-note-button").addEventListener("click", addTaskNote);
   document.getElementById("note-list").addEventListener("click", handleNoteAction);
   document.getElementById("task-date").addEventListener("change", (event) => {
@@ -681,6 +699,9 @@ async function loadData() {
     desc: task.description || "",
     date: task.task_date || "",
     deadline: task.deadline_date || "",
+    googleMeetUrl: task.google_meet_url || "",
+    googleEventId: task.google_event_id || "",
+    googleCalendarId: task.google_calendar_id || "",
     priority: task.priority || "medium",
     progress: task.progress_status || "ongoing",
     createdBy: task.created_by || "",
@@ -909,6 +930,7 @@ function renderEditor() {
   document.getElementById("delete-task-button").classList.toggle("app-hidden", !canDeleteTask(task));
   setSelectedAssignees(task?.assignees || []);
   renderAssets(task);
+  renderMeet(task);
   renderNotes(task);
 }
 
@@ -941,6 +963,17 @@ function renderAssets(task) {
       ${voices.length ? voices.map(renderVoice).join("") : `<p>${t("noVoices")}</p>`}
     </div>
   `;
+}
+
+function renderMeet(task) {
+  const status = document.getElementById("google-meet-status");
+  const createButton = document.getElementById("create-meet-button");
+  const joinLink = document.getElementById("join-meet-link");
+  status.textContent = task?.googleMeetUrl ? t("meetCreated") : task ? t("googleMeetReady") : t("meetSaveFirst");
+  createButton.disabled = !task;
+  joinLink.classList.toggle("app-hidden", !task?.googleMeetUrl);
+  if (task?.googleMeetUrl) joinLink.href = task.googleMeetUrl;
+  else joinLink.removeAttribute("href");
 }
 
 function renderFile(file) {
@@ -1162,6 +1195,44 @@ async function sendAssignmentEmails(taskId, assigneeIds) {
     });
   } catch (error) {
     console.warn("Assignment email function is not configured yet.", error);
+  }
+}
+
+async function connectGoogle() {
+  const { data, error } = await supabase.functions.invoke("google-oauth-start", {
+    body: { returnTo: window.location.href },
+  });
+  if (error) {
+    alert(error.message);
+    return;
+  }
+  if (data?.url) window.location.href = data.url;
+}
+
+async function createGoogleMeet() {
+  const task = getSelectedTask();
+  if (!task) {
+    document.getElementById("google-meet-status").textContent = t("meetSaveFirst");
+    return;
+  }
+  const button = document.getElementById("create-meet-button");
+  const status = document.getElementById("google-meet-status");
+  button.disabled = true;
+  status.textContent = t("creatingMeet");
+  try {
+    const { data, error } = await supabase.functions.invoke("create-google-meet", {
+      body: { taskId: task.id },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    await loadData();
+    renderAll();
+    selectedTaskId = task.id;
+    renderEditor();
+  } catch (error) {
+    status.textContent = error.message || String(error);
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -1804,6 +1875,7 @@ function taskFingerprint(task) {
     priority: task.priority,
     progress: task.progress,
     column: task.column,
+    googleMeetUrl: task.googleMeetUrl,
     assignees: [...task.assignees].sort(),
     files: task.files.length,
     voices: task.voices.length,

@@ -25,6 +25,9 @@ create table if not exists public.tasks (
   deadline_date date,
   priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'urgent')),
   progress_status text not null default 'ongoing' check (progress_status in ('ongoing', 'completed')),
+  google_meet_url text,
+  google_event_id text,
+  google_calendar_id text,
   import_key text unique,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
@@ -33,6 +36,9 @@ create table if not exists public.tasks (
 alter table public.tasks add column if not exists deadline_date date;
 alter table public.tasks add column if not exists priority text not null default 'medium';
 alter table public.tasks add column if not exists progress_status text not null default 'ongoing';
+alter table public.tasks add column if not exists google_meet_url text;
+alter table public.tasks add column if not exists google_event_id text;
+alter table public.tasks add column if not exists google_calendar_id text;
 alter table public.tasks
   drop constraint if exists tasks_priority_check;
 alter table public.tasks
@@ -87,6 +93,14 @@ create table if not exists public.task_activity (
   action text not null,
   actor_id uuid references auth.users(id),
   created_at timestamptz default now()
+);
+
+create table if not exists public.google_oauth_tokens (
+  id text primary key default 'default',
+  refresh_token text,
+  access_token text,
+  expires_at timestamptz,
+  updated_at timestamptz default now()
 );
 
 update public.tasks
@@ -154,6 +168,7 @@ alter table public.task_files enable row level security;
 alter table public.voice_notes enable row level security;
 alter table public.task_notes enable row level security;
 alter table public.task_activity enable row level security;
+alter table public.google_oauth_tokens enable row level security;
 
 drop policy if exists "profiles read authenticated" on public.profiles;
 create policy "profiles read authenticated" on public.profiles

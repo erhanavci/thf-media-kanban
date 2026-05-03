@@ -1,4 +1,4 @@
-const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "re_6x31g1SW_HujqAQ9giWHCR3SvMYtbMoeo";
+const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
 const fromEmail = Deno.env.get("TASK_EMAIL_FROM") ?? "erhan.avci@thf.org.tr";
 const adminEmail = Deno.env.get("ADMIN_APPROVAL_EMAIL") ?? "erhan.avci@thf.org.tr";
 const siteUrl = Deno.env.get("SITE_URL") ?? "https://thf-media-kanban.vercel.app";

@@ -1381,6 +1381,31 @@ h1 span {
   font-size: 0.78rem;
 }
 
+.meet-box {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px;
+}
+
+.meet-box > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.meet-box span {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.78rem;
+}
+
+.meet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .asset-list {
   display: grid;
   gap: 12px;
