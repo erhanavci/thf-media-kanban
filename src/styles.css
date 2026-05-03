@@ -874,13 +874,13 @@ h1 span {
 }
 
 .kanban-board.all-fit .column-heading {
-  min-height: 58px;
-  padding: 10px;
+  min-height: 70px;
+  padding: 12px;
 }
 
 .kanban-board.all-fit .column-heading span {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 1.12rem;
+  letter-spacing: 0.12em;
 }
 
 .kanban-board.all-fit .task-stack {
@@ -1039,16 +1039,16 @@ h1 span {
 
 .column-heading span,
 .column-heading em {
-  font-size: 0.95rem;
+  font-size: 1.28rem;
   font-style: normal;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .column-heading strong {
   margin: 8px 0;
-  font-size: 1.2rem;
+  font-size: 1.45rem;
   line-height: 1.1;
 }
 
@@ -2267,24 +2267,39 @@ h1 span {
 }
 
 .tone-blue {
-  background: linear-gradient(135deg, #001432, #0062a6);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 199, 44, 0.32), transparent 28%),
+    linear-gradient(135deg, #001432, #0062a6);
 }
 
 .tone-gold {
-  background: linear-gradient(135deg, #9a6d00, #FFC72C);
+  background:
+    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #8a6500, #FFC72C);
 }
 
 .tone-orange {
-  background: linear-gradient(135deg, #102a55, #FFC72C);
+  background:
+    radial-gradient(circle at 18% 82%, rgba(255, 199, 44, 0.28), transparent 28%),
+    linear-gradient(135deg, #173b62, #d57b1d);
 }
 
 .tone-violet {
-  background: linear-gradient(135deg, #001432, #4967b1);
+  background:
+    radial-gradient(circle at 82% 14%, rgba(255, 199, 44, 0.2), transparent 26%),
+    linear-gradient(135deg, #14204e, #6c55a3);
 }
 
-.tone-rose,
+.tone-rose {
+  background:
+    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.18), transparent 24%),
+    linear-gradient(135deg, #004c97, #00a0c6);
+}
+
 .tone-red {
-  background: linear-gradient(135deg, #001432, #FFC72C);
+  background:
+    radial-gradient(circle at 80% 18%, rgba(255, 199, 44, 0.34), transparent 28%),
+    linear-gradient(135deg, #59113c, #b83280);
 }
 
 .tone-steel {
@@ -2292,7 +2307,9 @@ h1 span {
 }
 
 .tone-green {
-  background: linear-gradient(135deg, #0b7a5c, #39a96b);
+  background:
+    radial-gradient(circle at 84% 16%, rgba(255, 199, 44, 0.26), transparent 26%),
+    linear-gradient(135deg, #0b6d63, #27a36a);
 }
 
 @media (max-width: 760px) {
