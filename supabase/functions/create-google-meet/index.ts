@@ -30,30 +30,55 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (profile?.approval_status !== "approved") throw new Error("Profile is not approved.");
 
-    const { taskId } = await request.json();
+    const { taskId, mode = "create", meetingDate, startTime = "10:00", endTime = "11:00" } = await request.json();
     if (!taskId) throw new Error("taskId is required.");
 
     const { data: task, error: taskError } = await admin
       .from("tasks")
-      .select("id, title, description, task_date, deadline_date, google_meet_url")
+      .select("id, title, description, task_date, deadline_date, google_meet_url, google_event_id, google_calendar_id")
       .eq("id", taskId)
       .single();
     if (taskError) throw taskError;
-    if (task.google_meet_url) return json({ meetUrl: task.google_meet_url });
 
     const { accessToken } = await getGoogleAccessToken(admin);
-    const event = buildCalendarEvent(task);
-    const calendarResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events?conferenceDataVersion=1`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(event),
+
+    if (mode === "delete") {
+      if (task.google_event_id) {
+        const deleteResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(task.google_calendar_id || googleCalendarId)}/events/${encodeURIComponent(task.google_event_id)}`,
+          { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        if (!deleteResponse.ok && deleteResponse.status !== 404) {
+          const deleteData = await deleteResponse.json().catch(() => ({}));
+          throw new Error(deleteData.error?.message || "Google Calendar event could not be deleted.");
+        }
+      }
+      await admin
+        .from("tasks")
+        .update({
+          google_meet_url: null,
+          google_event_id: null,
+          google_calendar_id: null,
+          google_meet_start: null,
+          google_meet_end: null,
+        })
+        .eq("id", taskId);
+      return json({ deleted: true });
+    }
+
+    const event = buildCalendarEvent(task, meetingDate, startTime, endTime, mode === "update");
+    const hasEvent = Boolean(task.google_event_id);
+    const calendarUrl = hasEvent
+      ? `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(task.google_calendar_id || googleCalendarId)}/events/${encodeURIComponent(task.google_event_id)}?conferenceDataVersion=1`
+      : `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events?conferenceDataVersion=1`;
+    const calendarResponse = await fetch(calendarUrl, {
+      method: hasEvent ? "PATCH" : "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(event),
+    });
     const calendarData = await calendarResponse.json();
     if (!calendarResponse.ok) throw new Error(calendarData.error?.message || "Google Calendar event could not be created.");
 
@@ -65,7 +90,9 @@ Deno.serve(async (request) => {
       .update({
         google_meet_url: meetUrl,
         google_event_id: calendarData.id,
-        google_calendar_id: googleCalendarId,
+        google_calendar_id: task.google_calendar_id || googleCalendarId,
+        google_meet_start: event.start.dateTime,
+        google_meet_end: event.end.dateTime,
       })
       .eq("id", taskId);
 
@@ -104,22 +131,25 @@ async function getGoogleAccessToken(admin: any) {
   return { accessToken: data.access_token };
 }
 
-function buildCalendarEvent(task: any) {
-  const date = task.deadline_date || task.task_date || new Date().toISOString().slice(0, 10);
-  const start = `${date}T10:00:00+03:00`;
-  const end = `${date}T11:00:00+03:00`;
-  return {
+function buildCalendarEvent(task: any, meetingDate?: string, startTime = "10:00", endTime = "11:00", keepConference = false) {
+  const date = meetingDate || task.deadline_date || task.task_date || new Date().toISOString().slice(0, 10);
+  const start = `${date}T${startTime}:00+03:00`;
+  const end = `${date}T${endTime}:00+03:00`;
+  const event: Record<string, unknown> = {
     summary: task.title,
     description: task.description || "",
     start: { dateTime: start, timeZone: "Europe/Istanbul" },
     end: { dateTime: end, timeZone: "Europe/Istanbul" },
-    conferenceData: {
+  };
+  if (!keepConference) {
+    event.conferenceData = {
       createRequest: {
         requestId: crypto.randomUUID(),
         conferenceSolutionKey: { type: "hangoutsMeet" },
       },
-    },
-  };
+    };
+  }
+  return event;
 }
 
 function json(body: unknown, status = 200) {
