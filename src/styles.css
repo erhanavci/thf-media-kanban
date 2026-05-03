@@ -785,6 +785,40 @@ h1 span {
   cursor: pointer;
 }
 
+.primary-button,
+.ghost-button,
+.danger-button,
+.auth-tab,
+.top-icon-button,
+.icon-mini-button,
+.column-heading span,
+.column-heading em,
+.task-list-day strong,
+.priority-pill,
+.progress-pill {
+  font-size: calc(1em + 4px);
+  letter-spacing: 0.055em;
+}
+
+.board-toolbar h2,
+.panel-heading h2 {
+  font-size: calc(1.25rem + 4px);
+  letter-spacing: 0.04em;
+}
+
+.toolbar-label,
+.session-bar span,
+.calendar-weekdays span {
+  font-size: calc(0.72rem + 4px);
+  letter-spacing: 0.12em;
+}
+
+.task-card strong,
+.task-list-main strong {
+  font-size: calc(0.98rem + 4px);
+  letter-spacing: 0.035em;
+}
+
 .primary-button {
   background: var(--ehf-yellow);
   border-color: rgba(var(--ehf-yellow-rgb), 0.88);
@@ -1826,6 +1860,7 @@ h1 span {
 .calendar-weekdays span,
 .calendar-date {
   font-family: var(--display-font);
+  letter-spacing: 0.045em;
 }
 
 .lang-toggle {
@@ -1842,15 +1877,17 @@ h1 span {
 .kanban-shell h1 {
   max-width: 980px;
   color: #fff;
-  font-size: clamp(2.9rem, 6.2vw, 6.2rem);
+  font-size: clamp(3.15rem, 6.45vw, 6.45rem);
   line-height: 0.94;
+  letter-spacing: 0.035em;
 }
 
 .kanban-shell h1 span {
   margin-top: 10px;
   color: var(--ehf-yellow);
-  font-size: clamp(1.7rem, 3vw, 3rem);
+  font-size: clamp(1.95rem, 3.25vw, 3.25rem);
   line-height: 1.04;
+  letter-spacing: 0.045em;
 }
 
 .kanban-shell .hero-copy {
