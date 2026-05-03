@@ -1400,6 +1400,27 @@ h1 span {
   font-size: 0.78rem;
 }
 
+.meet-schedule-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+  gap: 8px;
+}
+
+.meet-schedule-grid label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.meet-schedule-grid input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(7, 17, 31, 0.8);
+  padding: 10px;
+  color: #fff;
+}
+
 .meet-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1564,6 +1585,10 @@ h1 span {
 
   .task-list-status {
     justify-content: flex-start;
+  }
+
+  .meet-schedule-grid {
+    grid-template-columns: 1fr;
   }
 
   .kanban-board {

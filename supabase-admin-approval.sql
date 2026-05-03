@@ -8,6 +8,8 @@ alter table public.tasks add column if not exists progress_status text not null 
 alter table public.tasks add column if not exists google_meet_url text;
 alter table public.tasks add column if not exists google_event_id text;
 alter table public.tasks add column if not exists google_calendar_id text;
+alter table public.tasks add column if not exists google_meet_start timestamptz;
+alter table public.tasks add column if not exists google_meet_end timestamptz;
 alter table public.voice_notes add column if not exists file_name text;
 alter table public.task_files add column if not exists created_by uuid references auth.users(id);
 

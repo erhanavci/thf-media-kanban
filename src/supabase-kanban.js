@@ -115,8 +115,17 @@ const i18n = {
     connectGoogle: "Connect Google",
     createMeet: "Create Meet",
     creatingMeet: "Creating Meet...",
+    updateMeet: "Update Meet",
+    updatingMeet: "Updating Meet...",
+    deleteMeet: "Delete Meet",
+    deletingMeet: "Deleting Meet...",
+    meetingDateLabel: "Meeting date",
+    meetingStartLabel: "Start time",
+    meetingEndLabel: "End time",
     joinMeet: "Join Meet",
     meetCreated: "Meet link created.",
+    meetUpdated: "Meet updated.",
+    meetDeleted: "Meet deleted.",
     meetSaveFirst: "Save the task first.",
     noFiles: "No files yet.",
     noVoices: "No voice notes yet.",
@@ -254,8 +263,17 @@ const i18n = {
     connectGoogle: "Google'a Bağlan",
     createMeet: "Meet Oluştur",
     creatingMeet: "Meet oluşturuluyor...",
+    updateMeet: "Meet Güncelle",
+    updatingMeet: "Meet güncelleniyor...",
+    deleteMeet: "Meet Sil",
+    deletingMeet: "Meet siliniyor...",
+    meetingDateLabel: "Toplantı tarihi",
+    meetingStartLabel: "Başlangıç",
+    meetingEndLabel: "Bitiş",
     joinMeet: "Meet'e Katıl",
     meetCreated: "Meet linki oluşturuldu.",
+    meetUpdated: "Meet güncellendi.",
+    meetDeleted: "Meet silindi.",
     meetSaveFirst: "Önce görevi kaydet.",
     noFiles: "Henüz dosya yok.",
     noVoices: "Henüz sesli not yok.",
@@ -453,6 +471,8 @@ function wireEvents() {
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
   document.getElementById("connect-google-button").addEventListener("click", connectGoogle);
   document.getElementById("create-meet-button").addEventListener("click", createGoogleMeet);
+  document.getElementById("update-meet-button").addEventListener("click", () => createGoogleMeet("update"));
+  document.getElementById("delete-meet-button").addEventListener("click", deleteGoogleMeet);
   document.getElementById("add-note-button").addEventListener("click", addTaskNote);
   document.getElementById("note-list").addEventListener("click", handleNoteAction);
   document.getElementById("task-date").addEventListener("change", (event) => {
@@ -702,6 +722,8 @@ async function loadData() {
     googleMeetUrl: task.google_meet_url || "",
     googleEventId: task.google_event_id || "",
     googleCalendarId: task.google_calendar_id || "",
+    googleMeetStart: task.google_meet_start || "",
+    googleMeetEnd: task.google_meet_end || "",
     priority: task.priority || "medium",
     progress: task.progress_status || "ongoing",
     createdBy: task.created_by || "",
@@ -968,9 +990,20 @@ function renderAssets(task) {
 function renderMeet(task) {
   const status = document.getElementById("google-meet-status");
   const createButton = document.getElementById("create-meet-button");
+  const updateButton = document.getElementById("update-meet-button");
+  const deleteButton = document.getElementById("delete-meet-button");
   const joinLink = document.getElementById("join-meet-link");
+  const schedule = meetScheduleFromTask(task);
+  document.getElementById("meet-date").value = schedule.date;
+  document.getElementById("meet-start-time").value = schedule.startTime;
+  document.getElementById("meet-end-time").value = schedule.endTime;
   status.textContent = task?.googleMeetUrl ? t("meetCreated") : task ? t("googleMeetReady") : t("meetSaveFirst");
-  createButton.disabled = !task;
+  createButton.disabled = !task || Boolean(task.googleMeetUrl);
+  createButton.classList.toggle("app-hidden", Boolean(task?.googleMeetUrl));
+  updateButton.classList.toggle("app-hidden", !task?.googleMeetUrl);
+  deleteButton.classList.toggle("app-hidden", !task?.googleMeetUrl);
+  updateButton.disabled = !task?.googleMeetUrl;
+  deleteButton.disabled = !task?.googleMeetUrl;
   joinLink.classList.toggle("app-hidden", !task?.googleMeetUrl);
   if (task?.googleMeetUrl) joinLink.href = task.googleMeetUrl;
   else joinLink.removeAttribute("href");
@@ -1209,19 +1242,19 @@ async function connectGoogle() {
   if (data?.url) window.location.href = data.url;
 }
 
-async function createGoogleMeet() {
+async function createGoogleMeet(mode = "create") {
   const task = getSelectedTask();
   if (!task) {
     document.getElementById("google-meet-status").textContent = t("meetSaveFirst");
     return;
   }
-  const button = document.getElementById("create-meet-button");
+  const button = document.getElementById(mode === "update" ? "update-meet-button" : "create-meet-button");
   const status = document.getElementById("google-meet-status");
   button.disabled = true;
-  status.textContent = t("creatingMeet");
+  status.textContent = t(mode === "update" ? "updatingMeet" : "creatingMeet");
   try {
     const { data, error } = await supabase.functions.invoke("create-google-meet", {
-      body: { taskId: task.id },
+      body: { taskId: task.id, mode, ...getMeetSchedulePayload() },
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
@@ -1234,6 +1267,38 @@ async function createGoogleMeet() {
   } finally {
     button.disabled = false;
   }
+}
+
+async function deleteGoogleMeet() {
+  const task = getSelectedTask();
+  if (!task?.googleEventId) return;
+  const button = document.getElementById("delete-meet-button");
+  const status = document.getElementById("google-meet-status");
+  button.disabled = true;
+  status.textContent = t("deletingMeet");
+  try {
+    const { data, error } = await supabase.functions.invoke("create-google-meet", {
+      body: { taskId: task.id, mode: "delete" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    await loadData();
+    renderAll();
+    selectedTaskId = task.id;
+    renderEditor();
+  } catch (error) {
+    status.textContent = error.message || String(error);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function getMeetSchedulePayload() {
+  return {
+    meetingDate: document.getElementById("meet-date").value,
+    startTime: document.getElementById("meet-start-time").value || "10:00",
+    endTime: document.getElementById("meet-end-time").value || "11:00",
+  };
 }
 
 async function addTaskNote() {
@@ -1662,6 +1727,25 @@ function moveCalendarMonth(delta) {
 function currentMonthKey() {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function meetScheduleFromTask(task) {
+  const fallbackDate = task?.deadline || task?.date || todayKey();
+  const start = task?.googleMeetStart ? new Date(task.googleMeetStart) : null;
+  const end = task?.googleMeetEnd ? new Date(task.googleMeetEnd) : null;
+  return {
+    date: start ? toDateInput(start) : fallbackDate,
+    startTime: start ? toTimeInput(start) : "10:00",
+    endTime: end ? toTimeInput(end) : "11:00",
+  };
+}
+
+function toDateInput(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function toTimeInput(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function getSelectedTask() {

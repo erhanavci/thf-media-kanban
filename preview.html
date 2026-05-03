@@ -353,12 +353,32 @@
                 <strong data-i18n="googleMeetTitle">Google Meet</strong>
                 <span id="google-meet-status" data-i18n="googleMeetReady">Ready</span>
               </div>
+              <div class="meet-schedule-grid">
+                <label>
+                  <span data-i18n="meetingDateLabel">Meeting date</span>
+                  <input id="meet-date" type="date" />
+                </label>
+                <label>
+                  <span data-i18n="meetingStartLabel">Start time</span>
+                  <input id="meet-start-time" type="time" value="10:00" />
+                </label>
+                <label>
+                  <span data-i18n="meetingEndLabel">End time</span>
+                  <input id="meet-end-time" type="time" value="11:00" />
+                </label>
+              </div>
               <div class="meet-actions">
                 <button class="ghost-button icon-text-button" type="button" id="connect-google-button">
                   <span data-i18n="connectGoogle">Connect Google</span>
                 </button>
                 <button class="primary-button icon-text-button" type="button" id="create-meet-button">
                   <span data-i18n="createMeet">Create Meet</span>
+                </button>
+                <button class="ghost-button icon-text-button app-hidden" type="button" id="update-meet-button">
+                  <span data-i18n="updateMeet">Update Meet</span>
+                </button>
+                <button class="danger-button icon-text-button app-hidden" type="button" id="delete-meet-button">
+                  <span data-i18n="deleteMeet">Delete Meet</span>
                 </button>
                 <a class="ghost-button icon-text-button app-hidden" id="join-meet-link" target="_blank" rel="noreferrer">
                   <span data-i18n="joinMeet">Join Meet</span>

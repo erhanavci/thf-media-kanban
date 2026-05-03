@@ -28,6 +28,8 @@ create table if not exists public.tasks (
   google_meet_url text,
   google_event_id text,
   google_calendar_id text,
+  google_meet_start timestamptz,
+  google_meet_end timestamptz,
   import_key text unique,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
@@ -39,6 +41,8 @@ alter table public.tasks add column if not exists progress_status text not null 
 alter table public.tasks add column if not exists google_meet_url text;
 alter table public.tasks add column if not exists google_event_id text;
 alter table public.tasks add column if not exists google_calendar_id text;
+alter table public.tasks add column if not exists google_meet_start timestamptz;
+alter table public.tasks add column if not exists google_meet_end timestamptz;
 alter table public.tasks
   drop constraint if exists tasks_priority_check;
 alter table public.tasks
