@@ -31,6 +31,17 @@ Deno.serve(async (request) => {
     if (profile?.approval_status !== "approved") throw new Error("Profile is not approved.");
 
     const { taskId, mode = "create", meetingDate, startTime = "10:00", endTime = "11:00" } = await request.json();
+
+    if (mode === "status") {
+      const { data: stored } = await admin.from("google_oauth_tokens").select("refresh_token, updated_at").eq("id", "default").maybeSingle();
+      return json({ connected: Boolean(stored?.refresh_token), updatedAt: stored?.updated_at ?? null });
+    }
+
+    if (mode === "disconnect") {
+      await admin.from("google_oauth_tokens").delete().eq("id", "default");
+      return json({ disconnected: true });
+    }
+
     if (!taskId) throw new Error("taskId is required.");
 
     const { data: task, error: taskError } = await admin
@@ -53,7 +64,7 @@ Deno.serve(async (request) => {
           throw new Error(deleteData.error?.message || "Google Calendar event could not be deleted.");
         }
       }
-      await admin
+      const { error: clearError } = await admin
         .from("tasks")
         .update({
           google_meet_url: null,
@@ -63,6 +74,7 @@ Deno.serve(async (request) => {
           google_meet_end: null,
         })
         .eq("id", taskId);
+      if (clearError) throw clearError;
       return json({ deleted: true });
     }
 
@@ -85,7 +97,7 @@ Deno.serve(async (request) => {
     const meetUrl = calendarData.hangoutLink || calendarData.conferenceData?.entryPoints?.find((entry: any) => entry.entryPointType === "video")?.uri;
     if (!meetUrl) throw new Error("Google Calendar did not return a Meet link.");
 
-    await admin
+    const { error: updateError } = await admin
       .from("tasks")
       .update({
         google_meet_url: meetUrl,
@@ -95,6 +107,7 @@ Deno.serve(async (request) => {
         google_meet_end: event.end.dateTime,
       })
       .eq("id", taskId);
+    if (updateError) throw updateError;
 
     return json({ meetUrl, eventId: calendarData.id });
   } catch (error) {
