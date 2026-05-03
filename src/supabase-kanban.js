@@ -696,12 +696,12 @@ async function loadData() {
 }
 
 function renderAll() {
+  const isTaskEditorOpen = !taskModal.classList.contains("app-hidden");
   applyI18n();
-  renderSelectors();
+  if (!isTaskEditorOpen) renderSelectors();
   renderUsers();
   renderBoard();
   renderCalendar();
-  if (!taskModal.classList.contains("app-hidden")) renderEditor();
   renderAdminPanel();
   renderProfileShell();
   renderNotifications();
