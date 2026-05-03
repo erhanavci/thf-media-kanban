@@ -965,7 +965,7 @@ function renderEditor() {
   document.getElementById("task-title").value = task?.title || "";
   document.getElementById("task-desc").value = stripSource(task?.desc || "");
   document.getElementById("task-date").value = defaultDate;
-  document.getElementById("task-deadline").value = task?.deadline || "";
+  document.getElementById("task-deadline").value = task?.deadline || draftTaskDefaults.date || "";
   document.getElementById("task-priority").value = task?.priority || "medium";
   document.getElementById("task-progress").value = task?.progress || "ongoing";
   document.getElementById("task-column").value = task?.column || defaultColumn;
