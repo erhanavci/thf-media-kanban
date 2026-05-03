@@ -179,6 +179,7 @@ const i18n = {
     deleteNote: "Delete",
     editNotePrompt: "Edit note",
     deleteNoteConfirm: "Delete this note?",
+    footerCredit: "Copyright 2026 • Designed by THF Media Team. This workflow application was created by the THF Media Team.",
   },
   tr: {
     authKicker: "THF Medya Ekibi • Güvenli Operasyon Merkezi",
@@ -330,6 +331,7 @@ const i18n = {
     deleteNote: "Sil",
     editNotePrompt: "Notu düzenle",
     deleteNoteConfirm: "Bu not silinsin mi?",
+    footerCredit: "Copyright 2026 • THF Media Team tarafından tasarlanmıştır. Bu workflow uygulaması THF Medya Ekibi tarafından hazırlanmıştır.",
   },
 };
 
