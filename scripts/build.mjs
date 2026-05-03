@@ -7,6 +7,7 @@ const outDir = path.join(root, "public");
 await fs.rm(outDir, { recursive: true, force: true });
 await fs.mkdir(path.join(outDir, "src"), { recursive: true });
 await fs.mkdir(path.join(outDir, "assets"), { recursive: true });
+await fs.mkdir(path.join(outDir, "assets", "fonts"), { recursive: true });
 
 const files = [
   ["index.html", "index.html"],
@@ -15,6 +16,11 @@ const files = [
   ["src/supabase-kanban.js", "src/supabase-kanban.js"],
   ["assets/thf-logo.png", "assets/thf-logo.png"],
   ["assets/ehf-euro-logo.png", "assets/ehf-euro-logo.png"],
+  ["assets/fonts/FormulaCondensed-Ultralight.ttf", "assets/fonts/FormulaCondensed-Ultralight.ttf"],
+  ["assets/fonts/FormulaCondensed-Light.ttf", "assets/fonts/FormulaCondensed-Light.ttf"],
+  ["assets/fonts/FormulaCondensed-Regular.ttf", "assets/fonts/FormulaCondensed-Regular.ttf"],
+  ["assets/fonts/FormulaCondensed-Bold.ttf", "assets/fonts/FormulaCondensed-Bold.ttf"],
+  ["assets/fonts/FormulaCondensed-Black.ttf", "assets/fonts/FormulaCondensed-Black.ttf"],
 ];
 
 await Promise.all(
