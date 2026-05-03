@@ -113,6 +113,9 @@ const i18n = {
     googleMeetTitle: "Google Meet",
     googleMeetReady: "Ready",
     connectGoogle: "Connect Google",
+    disconnectGoogle: "Disconnect Google",
+    googleConnected: "Google connected",
+    googleDisconnected: "Google disconnected",
     createMeet: "Create Meet",
     creatingMeet: "Creating Meet...",
     updateMeet: "Update Meet",
@@ -261,6 +264,9 @@ const i18n = {
     googleMeetTitle: "Google Meet",
     googleMeetReady: "Hazır",
     connectGoogle: "Google'a Bağlan",
+    disconnectGoogle: "Bağlantıyı Kes",
+    googleConnected: "Google bağlı",
+    googleDisconnected: "Google bağlantısı yok",
     createMeet: "Meet Oluştur",
     creatingMeet: "Meet oluşturuluyor...",
     updateMeet: "Meet Güncelle",
@@ -379,6 +385,7 @@ let taskFingerprints = new Map();
 let recentLocalEdits = new Set();
 let profilePhotoMarkedForRemoval = false;
 let profilePreviewObjectUrl = "";
+let googleConnected = null;
 
 const authScreen = document.getElementById("auth-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -470,6 +477,7 @@ function wireEvents() {
   });
   document.getElementById("asset-list").addEventListener("click", handleAssetAction);
   document.getElementById("connect-google-button").addEventListener("click", connectGoogle);
+  document.getElementById("disconnect-google-button").addEventListener("click", disconnectGoogle);
   document.getElementById("create-meet-button").addEventListener("click", createGoogleMeet);
   document.getElementById("update-meet-button").addEventListener("click", () => createGoogleMeet("update"));
   document.getElementById("delete-meet-button").addEventListener("click", deleteGoogleMeet);
@@ -989,6 +997,8 @@ function renderAssets(task) {
 
 function renderMeet(task) {
   const status = document.getElementById("google-meet-status");
+  const connectButton = document.getElementById("connect-google-button");
+  const disconnectButton = document.getElementById("disconnect-google-button");
   const createButton = document.getElementById("create-meet-button");
   const updateButton = document.getElementById("update-meet-button");
   const deleteButton = document.getElementById("delete-meet-button");
@@ -997,7 +1007,17 @@ function renderMeet(task) {
   document.getElementById("meet-date").value = schedule.date;
   document.getElementById("meet-start-time").value = schedule.startTime;
   document.getElementById("meet-end-time").value = schedule.endTime;
-  status.textContent = task?.googleMeetUrl ? t("meetCreated") : task ? t("googleMeetReady") : t("meetSaveFirst");
+  connectButton.classList.toggle("app-hidden", googleConnected === true);
+  disconnectButton.classList.toggle("app-hidden", googleConnected !== true);
+  status.textContent = task?.googleMeetUrl
+    ? t("meetCreated")
+    : googleConnected === true
+      ? t("googleConnected")
+      : googleConnected === false
+        ? t("googleDisconnected")
+        : task
+          ? t("googleMeetReady")
+          : t("meetSaveFirst");
   createButton.disabled = !task || Boolean(task.googleMeetUrl);
   createButton.classList.toggle("app-hidden", Boolean(task?.googleMeetUrl));
   updateButton.classList.toggle("app-hidden", !task?.googleMeetUrl);
@@ -1007,6 +1027,7 @@ function renderMeet(task) {
   joinLink.classList.toggle("app-hidden", !task?.googleMeetUrl);
   if (task?.googleMeetUrl) joinLink.href = task.googleMeetUrl;
   else joinLink.removeAttribute("href");
+  if (googleConnected === null && session) checkGoogleConnection();
 }
 
 function renderFile(file) {
@@ -1242,6 +1263,35 @@ async function connectGoogle() {
   if (data?.url) window.location.href = data.url;
 }
 
+async function checkGoogleConnection() {
+  try {
+    const { data, error } = await supabase.functions.invoke("create-google-meet", {
+      body: { mode: "status" },
+    });
+    if (error) throw error;
+    googleConnected = Boolean(data?.connected);
+    if (!taskModal.classList.contains("app-hidden")) renderMeet(getSelectedTask());
+  } catch {
+    googleConnected = false;
+    if (!taskModal.classList.contains("app-hidden")) renderMeet(getSelectedTask());
+  }
+}
+
+async function disconnectGoogle() {
+  const status = document.getElementById("google-meet-status");
+  try {
+    const { data, error } = await supabase.functions.invoke("create-google-meet", {
+      body: { mode: "disconnect" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    googleConnected = false;
+    renderMeet(getSelectedTask());
+  } catch (error) {
+    status.textContent = error.message || String(error);
+  }
+}
+
 async function createGoogleMeet(mode = "create") {
   const task = getSelectedTask();
   if (!task) {
@@ -1258,6 +1308,7 @@ async function createGoogleMeet(mode = "create") {
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
+    googleConnected = true;
     await loadData();
     renderAll();
     selectedTaskId = task.id;
@@ -1271,7 +1322,7 @@ async function createGoogleMeet(mode = "create") {
 
 async function deleteGoogleMeet() {
   const task = getSelectedTask();
-  if (!task?.googleEventId) return;
+  if (!task?.googleEventId && !task?.googleMeetUrl) return;
   const button = document.getElementById("delete-meet-button");
   const status = document.getElementById("google-meet-status");
   button.disabled = true;
