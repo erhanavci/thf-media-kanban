@@ -726,7 +726,8 @@ h1 span {
   z-index: 1;
   display: flex;
   justify-content: center;
-  margin-top: 26px;
+  width: min(100%, 1480px);
+  margin: 26px auto 0;
   padding: 18px 0 4px;
 }
 
