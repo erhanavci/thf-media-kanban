@@ -1653,13 +1653,13 @@ h1 span {
 }
 
 .brand-lockup {
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 22px;
 }
 
 .brand-lockup img {
-  width: 68px;
-  height: 68px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
   border: 0;
   border-radius: 0;
@@ -1671,7 +1671,7 @@ h1 span {
 
 .brand-lockup span {
   width: 1px;
-  height: 44px;
+  height: 58px;
   background: rgba(255, 255, 255, 0.18);
 }
 
@@ -1680,8 +1680,8 @@ h1 span {
 }
 
 .brand-lockup.compact img {
-  width: 54px;
-  height: 54px;
+  width: 76px;
+  height: 76px;
 }
 
 .app-topbar {
@@ -2130,12 +2130,12 @@ h1 span {
   }
 
   .brand-lockup img {
-    width: 58px;
-    height: 58px;
+    width: 68px;
+    height: 68px;
   }
 
   .brand-lockup.compact img {
-    width: 48px;
-    height: 48px;
+    width: 58px;
+    height: 58px;
   }
 }

@@ -141,7 +141,7 @@ const i18n = {
     confirmEmail: "Account created. If email confirmation is enabled in Supabase, confirm your email and then log in.",
     adminNotified: "Account created. Confirm your email, then wait for admin approval.",
     dbError: "Database could not be read",
-    pendingKicker: "EURO 2026 WORKFLOW",
+    pendingKicker: "EHF EURO 2026 WORKFLOW",
     pendingTitle: "Access pending approval.",
     pendingCopy: "Your account has been created. An administrator must approve your access before you can view the workflow.",
     adminLabel: "Admin",
@@ -292,7 +292,7 @@ const i18n = {
     confirmEmail: "Üyelik oluşturuldu. Supabase email onayı açıksa e-postanı onaylayıp giriş yap.",
     adminNotified: "Üyelik oluşturuldu. E-postanı onayla; ardından admin onayını bekle.",
     dbError: "Database okunamadı",
-    pendingKicker: "EURO 2026 WORKFLOW",
+    pendingKicker: "EHF EURO 2026 WORKFLOW",
     pendingTitle: "Erişim admin onayı bekliyor.",
     pendingCopy: "Hesabın oluşturuldu. Workflow ekranına erişebilmen için bir adminin hesabını onaylaması gerekiyor.",
     adminLabel: "Admin",
@@ -951,7 +951,7 @@ function renderEditor() {
   document.getElementById("editor-title").textContent = task ? t("editTask") : t("newTask");
   document.getElementById("task-id").value = task?.id || "";
   document.getElementById("task-title").value = task?.title || "";
-  document.getElementById("task-desc").value = task?.desc || "";
+  document.getElementById("task-desc").value = stripSource(task?.desc || "");
   document.getElementById("task-date").value = task?.date || "";
   document.getElementById("task-deadline").value = task?.deadline || "";
   document.getElementById("task-priority").value = task?.priority || "medium";
@@ -1183,7 +1183,7 @@ async function saveTask(event) {
   const previousAssignees = new Set(getSelectedTask()?.assignees || []);
   const payload = {
     title: document.getElementById("task-title").value.trim(),
-    description: document.getElementById("task-desc").value.trim(),
+    description: stripSource(document.getElementById("task-desc").value.trim()),
     task_date: document.getElementById("task-date").value || null,
     deadline_date: document.getElementById("task-deadline").value || null,
     priority: document.getElementById("task-priority").value,
@@ -1618,9 +1618,9 @@ function currentNotifications() {
   return tasks
     .filter((task) => task.assignees.includes(currentProfile.id))
     .flatMap((task) => {
-      const notices = [{ id: notificationId("assigned", task), type: "assigned", task, title: t("assignedNotice"), body: task.title }];
+      const notices = [{ id: notificationId("assigned", task), type: "assigned", task, title: task.title, body: taskPreview(task) }];
       if (task.deadline && daysBetween(today, task.deadline) === 1 && task.progress !== "completed") {
-        notices.unshift({ id: notificationId("deadline", task), type: "deadline", task, title: t("deadlineTomorrowTitle"), body: `${task.title} ${t("deadlineTomorrowBody")}` });
+        notices.unshift({ id: notificationId("deadline", task), type: "deadline", task, title: task.title, body: `${t("deadlineTomorrowTitle")} • ${taskPreview(task)}` });
       }
       return notices;
     })
@@ -1640,8 +1640,8 @@ function activityNotifications() {
         id: notificationId(`activity-${activity.action}-${activity.id}`, task),
         type: "activity",
         task,
-        title: t("activityNotice"),
-        body: `${actor} ${activityLabel(activity.action)}: ${task.title}`,
+        title: task.title,
+        body: `${actor} ${activityLabel(activity.action)}${taskPreview(task) ? ` • ${taskPreview(task)}` : ""}`,
         createdAt: activity.created_at,
       };
     })
@@ -1677,6 +1677,16 @@ function activityLabel(action) {
     voice_deleted: "activityVoiceDeleted",
   };
   return t(map[action] || "activityNotice");
+}
+
+function taskPreview(task) {
+  return truncateText(stripSource(task?.desc || ""), 110);
+}
+
+function truncateText(value = "", maxLength = 110) {
+  const normalized = String(value).replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1)}...`;
 }
 
 function notificationId(type, task) {
@@ -1950,8 +1960,10 @@ function notifyAssignedTaskChanges() {
 
     if ((isNew || isChanged) && !recentLocalEdits.has(task.id)) {
       seen.add(task.id);
-      new Notification(isNew ? t("assignedNotificationTitle") : t("taskUpdatedNotificationTitle"), {
-        body: `${task.title}${task.deadline ? ` • ${t("due")}: ${formatDate(task.deadline)}` : ""}`,
+      new Notification(task.title, {
+        body: isNew
+          ? taskPreview(task) || t("assignedNotificationTitle")
+          : `${t("taskUpdatedNotificationTitle")}${taskPreview(task) ? ` • ${taskPreview(task)}` : ""}`,
       });
     }
 
@@ -1972,8 +1984,8 @@ function notifyDeadlineReminders() {
     .filter((task) => task.deadline && task.progress !== "completed" && daysBetween(today, task.deadline) === 1)
     .forEach((task) => {
       if (sent.has(task.id)) return;
-      new Notification(t("deadlineTomorrowTitle"), {
-        body: `${task.title} • ${t("due")}: ${formatDate(task.deadline)}`,
+      new Notification(task.title, {
+        body: `${t("deadlineTomorrowTitle")} • ${t("due")}: ${formatDate(task.deadline)}${taskPreview(task) ? ` • ${taskPreview(task)}` : ""}`,
       });
       sent.add(task.id);
     });
