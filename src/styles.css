@@ -2294,39 +2294,27 @@ h1 span {
 }
 
 .tone-blue {
-  background:
-    radial-gradient(circle at 12% 12%, rgba(255, 199, 44, 0.32), transparent 28%),
-    linear-gradient(135deg, #001432, #0062a6);
+  background: linear-gradient(135deg, #2563eb, #22d3ee);
 }
 
 .tone-gold {
-  background:
-    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.24), transparent 26%),
-    linear-gradient(135deg, #8a6500, #FFC72C);
+  background: linear-gradient(135deg, #d97706, #fde047);
 }
 
 .tone-orange {
-  background:
-    radial-gradient(circle at 18% 82%, rgba(255, 199, 44, 0.28), transparent 28%),
-    linear-gradient(135deg, #173b62, #d57b1d);
+  background: linear-gradient(135deg, #ea580c, #ef4444);
 }
 
 .tone-violet {
-  background:
-    radial-gradient(circle at 82% 14%, rgba(255, 199, 44, 0.2), transparent 26%),
-    linear-gradient(135deg, #14204e, #6c55a3);
+  background: linear-gradient(135deg, #7c3aed, #d946ef);
 }
 
 .tone-rose {
-  background:
-    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.18), transparent 24%),
-    linear-gradient(135deg, #004c97, #00a0c6);
+  background: linear-gradient(135deg, #e11d48, #fb7185);
 }
 
 .tone-red {
-  background:
-    radial-gradient(circle at 80% 18%, rgba(255, 199, 44, 0.34), transparent 28%),
-    linear-gradient(135deg, #59113c, #b83280);
+  background: linear-gradient(135deg, #b91c1c, #f87171);
 }
 
 .tone-steel {
@@ -2334,9 +2322,7 @@ h1 span {
 }
 
 .tone-green {
-  background:
-    radial-gradient(circle at 84% 16%, rgba(255, 199, 44, 0.26), transparent 26%),
-    linear-gradient(135deg, #0b6d63, #27a36a);
+  background: linear-gradient(135deg, #059669, #a3e635);
 }
 
 @media (max-width: 760px) {
